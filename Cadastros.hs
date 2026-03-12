@@ -7,7 +7,7 @@ import Estruturas
 usuarioExiste :: Int -> [Usuario] -> Bool
 usuarioExiste _ [] = False
 usuarioExiste mat (x:xs)
-    | matricula_user u == mat = True
+    | matricula_user x == mat = True
     | otherwise               = usuarioExiste mat xs
 
 adicionarUsuario :: Usuario -> BancoDeDados -> BancoDeDados
@@ -32,7 +32,7 @@ removerUsuario mat bd = bd {
 
 auxEditarUsuario :: Int -> Usuario -> [Usuario] -> [Usuario]
 auxEditarUsuario _ _ [] = []
-auxEditarUsuario mat novoUser (x:s)
+auxEditarUsuario mat novoUser (x:xs)
     | matricula_user x == mat = novoUser : xs
     | otherwise               = x : auxEditarUsuario mat novoUser xs
 
@@ -47,9 +47,9 @@ editarUsuario mat novoUser bd = bd {
 
 itemExiste :: Int -> [Item] -> Bool
 itemExiste _ [] = False
-itemExiste id (x:xs)
-    | id_item x == id = True
-    | otherwise            = itemExiste id xs
+itemExiste idBusca (x:xs)
+    | id_item x == idBusca = True
+    | otherwise            = itemExiste idBusca xs
 
 adicionarItem :: Item -> BancoDeDados -> BancoDeDados
 adicionarItem novoItem bd
@@ -61,24 +61,24 @@ adicionarItem novoItem bd
 
 auxRemoverItem :: Int -> [Item] -> [Item]
 auxRemoverItem _ [] = []
-auxRemoverItem id (x:xs)
-    | id_item x == id = xs
-    | otherwise            = x : auxRemoverItem id xs
+auxRemoverItem idBusca (x:xs)
+    | id_item x == idBusca = xs
+    | otherwise            = x : auxRemoverItem idBusca xs
 
 removerItem :: Int -> BancoDeDados -> BancoDeDados
-removerItem id bd = bd {
-    lista_itens = auxRemoverItem id (lista_itens bd),
-    historico_log = "Item removido com ID: " ++ show id : historico_log bd
+removerItem idBusca bd = bd {
+    lista_itens = auxRemoverItem idBusca (lista_itens bd),
+    historico_log = "Item removido com ID: " ++ show idBusca : historico_log bd
 }
 
 auxEditarItem :: Int -> Item -> [Item] -> [Item]
 auxEditarItem _ _ [] = []
-auxEditarItem id novoItem (x:xs)
-    | id_item x == id = novoItem : xs
-    | otherwise            = x : auxEditarItem id novoItem xs
+auxEditarItem idBusca novoItem (x:xs)
+    | id_item x == idBusca = novoItem : xs
+    | otherwise            = x : auxEditarItem idBusca novoItem xs
 
 editarItem :: Int -> Item -> BancoDeDados -> BancoDeDados
-editarItem id novoItem bd = bd {
-    lista_itens = auxEditarItem id novoItem (lista_itens bd),
-    historico_log = "Item editado com ID: " ++ show id : historico_log bd
+editarItem idBusca novoItem bd = bd {
+    lista_itens = auxEditarItem idBusca novoItem (lista_itens bd),
+    historico_log = "Item editado com ID: " ++ show idBusca : historico_log bd
 }
