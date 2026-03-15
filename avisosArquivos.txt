@@ -1,0 +1,17 @@
+a parte de arquivos já compreende quase todas as exigencias, mais ainda é
+necessário correpsonder a alguma exigencias do trabalho.
+
+pedi uma checkbox para Ia do que falta com alguns conselhos opicionais tambem mas algumas das
+funções dependem de outras partes do trabalho que ainda não estão no github.
+
+[ ] Persistência do Log de Operações: Criar a função para salvar e ler o histórico de operações (cadastros, empréstimos, erros) em arquivo, garantindo a rastreabilidade exigida.
+[ ] Persistência do Histórico de Alterações: Implementar o salvamento das edições de itens/usuários (antes vs. depois) para fins de auditoria.
+[ ] Tratamento de Erros na Importação: Adicionar validação ao ler arquivos CSV para que o programa não quebre (crash) caso o arquivo esteja malformatado.
+[ ] Substituição de Bibliotecas Externas: Remover dependências como Data.List.Split (se estiver usando) e implementar sua própria função de split, já que o projeto exige apenas bibliotecas padrão do Haskell.
+[ ] Documentação das Funções de Arquivo: Adicionar comentários acima de cada função com seu nome, propósito e descrição do algoritmo.
+[ ] Exportação Seletiva: Ajustar a função de exportação para que o usuário possa escolher exportar apenas itens, apenas usuários ou apenas empréstimos.
+[ ] Integração com o Banco de Dados: Garantir que a função importarCSV preencha corretamente o tipo BancoDeDados, incluindo as listas de empréstimos e logs (atualmente estão retornando listas vazias no seu código).
+[ ] Backup Automático: Criar uma função que gera uma cópia de segurança (.bak) toda vez que o sistema for salvo com sucesso.
+[ ] Validação de Tipos no CSV: Em vez de usar read diretamente (que causa erro se a string for inválida), usar reads ou Text.Read.readMaybe para uma importação mais robusta.
+[ ] Formatação de Cabeçalho Dinâmica: Fazer com que a exportação CSV identifique automaticamente os campos se houver novos tipos de mídia no futuro.
+[ ] Caminho de Arquivo Customizável: Permitir que o usuário digite o caminho/diretório onde deseja salvar os relatórios exportados.
