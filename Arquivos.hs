@@ -36,16 +36,16 @@ ArquivarCSV bd = do
     writeFile "usuarios.csv" (unlines ("matricula,nome,email,emprestimos" : usuariosCSV))
 
 -- Exportar itens e usuários para CSV com usuario escolhendo o nome do arquivo
--- ArquivarCSV :: BancoDeDados -> IO () -- usa IO pois vai escrever em arquivos, gerando efeitos colaterais
--- ArquivarCSV bd = do
---   let itensCSV = map itemParaCSV (lista_itens bd) --transforma cada item  da lista de itens em uma linha CSV
---   let usuariosCSV = map usuarioParaCSV (lista_usuarios bd) --transforma cada usuario da lista de usuarios em uma linha CSV
---   putStrLn "Digite o nome do arquivo para salvar os itens (ex: itens.csv):"
---   nomeArquivoItem <- getLine
---   WriteFile nomeArquivoItem (unlines ("id,nome,autor,ano,tipo,disponivel,fila" : itensCSV))
---   putStrLn "Digite o nome do arquivo para salvar os usuários (ex: usuarios.csv):"
---   nomeArquivoUsuario <- getLine
---   writeFile nomeArquivoUsuario (unlines ("matricula,nome,email,emprestimos" : usuariosCSV))
+ArquivarCSVcustom :: BancoDeDados -> IO () -- usa IO pois vai escrever em arquivos, gerando efeitos colaterais
+ArquivarCSVcustom bd = do
+    let itensCSV = map itemParaCSV (lista_itens bd) --transforma cada item  da lista de itens em uma linha CSV
+    let usuariosCSV = map usuarioParaCSV (lista_usuarios bd) --transforma cada usuario da lista de usuarios em uma linha CSV
+    putStrLn "Digite o nome do arquivo para salvar os itens (ex: itens.csv):"
+    nomeArquivoItem <- getLine
+    writeFile nomeArquivoItem (unlines ("id,nome,autor,ano,tipo,disponivel,fila" : itensCSV))
+    putStrLn "Digite o nome do arquivo para salvar os usuários (ex: usuarios.csv):"
+    nomeArquivoUsuario <- getLine
+    writeFile nomeArquivoUsuario (unlines ("matricula,nome,email,emprestimos" : usuariosCSV))
 
 -- Função auxiliar para parsear linha CSV para Item
 csvParaItem :: String -> Item -- converte cada string que está ordenada, no formato CSV, para um item.
@@ -69,10 +69,6 @@ importarCSV = do
     let itens = map csvParaItem itensLinhas -- transforma csv em itens com tipos adequados
     let usuarios = map csvParaUsuario usuariosLinhas -- transforma csv em usuarios com tipos adequados
     return (BancoDeDados itens usuarios [] [])  -- emprestimos e log vazios devem ser colocado aqui, quando estiver pronto
-
--- Salvar logs de auditoria em um arquivo separado (Função de log não implementada ainda)
--- salvarLogs :: BancoDeDados -> IO ()
--- salvarLogs bd = writeFile "auditoria.txt" (unlines (historico_log bd))
 
 -- Salvar o banco de dados (estado atual do sistema) no arquivo backup.txt
 salvarBanco :: BancoDeDados -> IO ()
