@@ -21,14 +21,6 @@ Este projeto foi desenvolvido em **Haskell** para [problema ou objetivo]. Ele ut
    ```bash
    git clone [https://github.com/usuario/projeto.git](https://github.com/usuario/projeto.git)
 
-# Projeto Haskell - [Nome do Seu Projeto]
-
-![Haskell](https://img.shields.io/badge/Haskell-5D4F85?style=for-the-badge&logo=haskell&logoColor=white)
-![AI Assisted](https://img.shields.io/badge/AI-Assisted-blueviolet?style=for-the-badge&logo=openai)
-![Documentation](https://img.shields.io/badge/Documentation-AI--Generated-brightgreen?style=for-the-badge&logo=markdown)
-
----
-
 ## 🤖 Uso de Inteligência Artificial no Projeto
 
 Este projeto contou com o suporte de Inteligência Artificial (IA) como um co-piloto estratégico, otimizando o fluxo de trabalho desde a arquitetura lógica até a documentação final. Abaixo, detalhamos como a ferramenta foi integrada ao desenvolvimento:
