@@ -12,9 +12,9 @@ LOGS E HISTORICOS
 
 
 ARQUIVOS
-[ ] Tratamento de Erros na Importação: Adicionar validação ao ler arquivos CSV para que o programa não quebre (crash) caso o arquivo esteja malformatado.
+[X] Tratamento de Erros na Importação: Adicionar validação ao ler arquivos CSV para que o programa não quebre (crash) caso o arquivo esteja malformatado.
 [ ] Documentação das Funções de Arquivo: Adicionar comentários acima de cada função com seu nome, propósito e descrição do algoritmo.
-[ ] ] Exportação Seletiva: Ajustar a função de exportação para que o usuário possa escolher exportar apenas itens, apenas usuários ou apenas empréstimos.
+[X] Exportação Seletiva: Ajustar a função de exportação para que o usuário possa escolher exportar apenas itens, apenas usuários ou apenas empréstimos.
 
 GERAL
-[ ] Substituição de Bibliotecas Externas: Remover dependências como Data.List.Split (se estiver usando) e implementar sua própria função de split, já que o projeto exige apenas bibliotecas padrão do Haskell.
+[X] Substituição de Bibliotecas Externas: Remover dependências como Data.List.Split (se estiver usando) e implementar sua própria função de split, já que o projeto exige apenas bibliotecas padrão do Haskell.
