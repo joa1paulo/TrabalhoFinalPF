@@ -32,12 +32,12 @@ submenu_itens banco = do
     
     case opcao of
         "1" -> do
-            id_str <- prompt_str "Informe o codigo unico do item: "
+            id_str <- prompt_str "Informe o codigo unico: "
             titulo_str <- prompt_str "Informe o titulo: "
-            autor_str <- prompt_str "Informe o autor: "
+            autor_str <- prompt_str "Informe o autor/diretor: "
             ano_str <- prompt_str "Informe o ano: "
             
-            exibir_opcoes "Tipo de Midia" ["1 - Livro | 2 - Filme | 3 - Jogo"]
+            exibir_opcoes "Qual o tipo de midia?" ["1 - Livro | 2 - Filme | 3 - Jogo"]
             tipo_str <- prompt_str "Opcao: "
             
             let tipo_escolhido = case tipo_str of
@@ -56,12 +56,12 @@ submenu_itens banco = do
         "2" -> do
             id_str <- prompt_str "ID para remover: "
             let banco_novo = remover_item (read id_str) banco
-            putStrLn "Item removido."
+            putStrLn "Operacao concluida."
             submenu_itens banco_novo
             
         "3" -> do
             putStrLn "\n--- Lista de Itens ---"
-            mapM_ (\i -> putStrLn $ show (id_item i) ++ " - " ++ titulo i) (lista_itens banco)
+            mapM_ (\i -> putStrLn $ show (id_item i) ++ " - " ++ nome_titulo i) (lista_itens banco)
             submenu_itens banco
             
         "4" -> menu_principal banco
@@ -94,7 +94,7 @@ submenu_usuarios banco = do
             submenu_usuarios banco_novo
             
         "3" -> do
-            mapM_ (\u -> putStrLn $ show (matricula u) ++ " - " ++ nome u) (lista_usuarios banco)
+            mapM_ (\u -> putStrLn $ show (matricula_user u) ++ " - " ++ nome_user u) (lista_usuarios banco)
             submenu_usuarios banco
             
         "4" -> menu_principal banco
@@ -127,74 +127,88 @@ submenu_emprestimos banco = do
 
 submenu_busca :: BancoDeDados -> IO ()
 submenu_busca banco = do
-    exibir_opcoes "Busca" ["1 - Buscar", "2 - Voltar"]
+    exibir_opcoes "Busca e Listagem" ["1 - Buscar por titulo ou autor", "2 - Voltar ao menu principal"]
     opcao <- prompt_str "Opcao: "
     case opcao of
         "1" -> do
-            termo <- prompt_str "Termo: "
-            let t_min = para_minusculo termo
-            let res = filter (\i -> contem_substring t_min (para_minusculo (titulo i)) || 
-                                    contem_substring t_min (para_minusculo (autor i))) (lista_itens banco)
-            mapM_ (\i -> putStrLn $ show (id_item i) ++ " - " ++ titulo i) res
+            termo <- prompt_str "Informe o termo para busca: "
+            let termo_min = para_minusculo termo
+            let resultados = filter (\i -> contem_substring termo_min (para_minusculo (nome_titulo i)) || 
+                                           contem_substring termo_min (para_minusculo (autor_diretor i))) (lista_itens banco)
+            putStrLn "\n--- Resultados ---"
+            if null resultados
+                then putStrLn "Nenhum item encontrado."
+                else mapM_ (\i -> putStrLn $ show (id_item i) ++ " - " ++ nome_titulo i) resultados
             submenu_busca banco
         "2" -> menu_principal banco
         _   -> submenu_busca banco
 
 submenu_relatorios :: BancoDeDados -> IO ()
 submenu_relatorios banco = do
-    exibir_opcoes "Relatorios" ["1 - Emprestados", "2 - Voltar"]
+    exibir_opcoes "Relatorios e Estatisticas" ["1 - Emprestimos ativos", "2 - Voltar ao menu principal"]
     opcao <- prompt_str "Opcao: "
     case opcao of
         "1" -> do
-            let emp = filter (\i -> not (disponivel i)) (lista_itens banco)
-            mapM_ (\i -> putStrLn $ titulo i) emp
+            let emprestados = filter (\i -> not (ta_disponivel i)) (lista_itens banco)
+            putStrLn "\n--- Itens Atualmente Emprestados ---"
+            if null emprestados
+                then putStrLn "Nenhum item emprestado."
+                else mapM_ (\i -> putStrLn $ "ID: " ++ show (id_item i) ++ " | Titulo: " ++ nome_titulo i) emprestados
             submenu_relatorios banco
         "2" -> menu_principal banco
         _   -> submenu_relatorios banco
 
 submenu_edicao :: BancoDeDados -> IO ()
 submenu_edicao banco = do
-    exibir_opcoes "Edicao" ["1 - Email Usuario", "2 - Ano Item", "3 - Voltar"]
+    exibir_opcoes "Edicao de Dados" [
+        "1 - Editar e-mail de usuario",
+        "2 - Editar ano de um item",
+        "3 - Voltar ao menu principal"
+        ]
     opcao <- prompt_str "Opcao: "
     case opcao of
         "1" -> do
-            m <- prompt_str "Matricula: "
-            e <- prompt_str "Novo Email: "
-            let m_int = read m
-            let u_at = map (\u -> if matricula u == m_int then u { email = e } else u) (lista_usuarios banco)
-            let log = historico_log banco ++ ["Editou email de " ++ m]
-            putStrLn "Email alterado."
-            submenu_edicao (banco { lista_usuarios = u_at, historico_log = log })
+            mat_str <- prompt_str "Matricula do usuario: "
+            novo_email <- prompt_str "Novo e-mail: "
+            let mat_int = read mat_str :: Int
+            let users_atualizados = map (\u -> if matricula_user u == mat_int then u { email_user = novo_email } else u) (lista_usuarios banco)
+            let novo_log = historico_log banco ++ ["Editou email de " ++ mat_str]
+            putStrLn "Sucesso!"
+            submenu_edicao (banco { lista_usuarios = users_atualizados, historico_log = novo_log })
         "2" -> do
-            i <- prompt_str "ID: "
-            a <- prompt_str "Novo Ano: "
-            let i_int = read i
-            let i_at = map (\it -> if id_item it == i_int then it { ano = read a } else it) (lista_itens banco)
-            let log = historico_log banco ++ ["Editou ano de " ++ i]
-            putStrLn "Ano alterado."
-            submenu_edicao (banco { lista_itens = i_at, historico_log = log })
+            id_str <- prompt_str "ID do item: "
+            novo_ano_str <- prompt_str "Novo ano: "
+            let id_int = read id_str :: Int
+            let itens_atualizados = map (\i -> if id_item i == id_int then i { ano_lancamento = read novo_ano_str } else i) (lista_itens banco)
+            let novo_log = historico_log banco ++ ["Editou ano do item " ++ id_str]
+            putStrLn "Sucesso!"
+            submenu_edicao (banco { lista_itens = itens_atualizados, historico_log = novo_log })
         "3" -> menu_principal banco
         _   -> submenu_edicao banco
 
 submenu_exportacao :: BancoDeDados -> IO ()
 submenu_exportacao banco = do
-    exibir_opcoes "Exportar" ["1 - Gerar CSV", "2 - Voltar"]
+    exibir_opcoes "Exportacao de Dados" ["1 - Exportar banco para CSV", "2 - Voltar ao menu principal"]
     opcao <- prompt_str "Opcao: "
     case opcao of
         "1" -> do
-            let l_i = map (\i -> "Item," ++ titulo i) (lista_itens banco)
-            writeFile "export.csv" (unlines l_i)
-            putStrLn "Exportado."
+            let linhas_itens = map (\i -> "Item," ++ show (id_item i) ++ "," ++ nome_titulo i) (lista_itens banco)
+            writeFile "exportacao.csv" (unlines linhas_itens)
+            putStrLn "Sucesso! Dados exportados."
             submenu_exportacao banco
         "2" -> menu_principal banco
         _   -> submenu_exportacao banco
 
 submenu_auditoria :: BancoDeDados -> IO ()
 submenu_auditoria banco = do
-    exibir_opcoes "Auditoria" ["1 - Logs", "2 - Voltar"]
+    exibir_opcoes "Auditoria" ["1 - Exibir logs", "2 - Voltar"]
     opcao <- prompt_str "Opcao: "
     case opcao of
-        "1" -> mapM_ putStrLn (historico_log banco) >> submenu_auditoria banco
+        "1" -> do
+            putStrLn "\n--- Log de Operacoes ---"
+            mapM_ putStrLn (historico_log banco)
+            _ <- prompt_str "\nEnter para continuar..."
+            submenu_auditoria banco
         "2" -> menu_principal banco
         _   -> submenu_auditoria banco
 
@@ -203,7 +217,7 @@ menu_principal banco = do
     exibir_opcoes "Menu Principal" [
         "1 - Itens", "2 - Usuarios", "3 - Emprestimos", 
         "4 - Busca", "5 - Relatorios", "6 - Edicao", 
-        "7 - Exportar", "8 - Auditoria", "0 - Sair"
+        "7 - Exportar", "8 - Auditoria", "0 - Salvar e Sair"
         ]
     opcao <- prompt_str "Opcao: "
     case opcao of
@@ -224,16 +238,10 @@ eh_prefixo _ [] = False
 eh_prefixo (x:xs) (y:ys) = x == y && eh_prefixo xs ys
 
 contem_substring :: String -> String -> Bool
-contem_substring [] _ = True
-contem_substring _ [] = False
 contem_substring sub texto@(t:ts)
     | eh_prefixo sub texto = True
     | otherwise            = contem_substring sub ts
-
-minuscula :: Char -> Char
-minuscula c
-    | fromEnum c >= 65 && fromEnum c <= 90 = toEnum (fromEnum c + 32)
-    | otherwise = c
+contem_substring _ [] = False
 
 para_minusculo :: String -> String
-para_minusculo s = map minuscula s
+para_minusculo s = map (\c -> if fromEnum c >= 65 && fromEnum c <= 90 then toEnum (fromEnum c + 32) else c) s
