@@ -41,6 +41,26 @@ usuarioParaCSV user = meuIntercalate "," [
     show (meus_emprestimos user)
     ] -- a função meuIntercalate junta os elementos os separando por ,
 
+-- | Retorna a lista de logs do banco de dados.
+-- Foi mantido como String para compatibilidade com o histórico atual.
+lista_log :: BancoDeDados -> [String]
+lista_log = historico_log
+
+-- | Converte uma entrada de log (string) para uma linha CSV com as colunas:
+-- timestamp,acao,detalhes
+logEntryParaCSV :: String -> String
+logEntryParaCSV entry =
+    let (timestamp, rest) = case entry of
+            ('[':xs) -> case break (== ']') xs of
+                (ts, ']':r) -> (ts, r)
+                _           -> ("", entry)
+            _ -> ("", entry)
+        action = dropWhile (== ' ') rest
+        csvEscape s = '"' : concatMap escapeChar s ++ "\""
+        escapeChar '"' = "\"\""
+        escapeChar c    = [c]
+    in csvEscape timestamp ++ "," ++ csvEscape action ++ ","
+
 -- Exportar itens e usuários para CSV
 ArquivarCSV :: BancoDeDados -> IO () -- usa IO pois vai escrever em arquivos, gerando efeitos colaterais
 ArquivarCSV bd = do
@@ -147,6 +167,22 @@ ExportarCSVespecifico bd = do
             let logCSV = map logEntryParaCSV (lista_log bd)  -- converte log para CSV
             putStrLn "Digite o nome do arquivo para salvar o log (ex: log.csv):"
             nomeArquivoLog <- getLine  -- lê nome do arquivo
-            writeFile nomeArquivoLog (unlines ("timestamp,acao,detalhes" : logCSV))  -- escreve log
-            putStrLn "Log exportado com sucesso!"
+            writeFile nomeArquivoLog (unlines ("timestamp,acao,detalhes" : logCSV))  -- escreve log somente do banco de dados atual
+            putStrLn "Log exportado com sucesso!" -- ou seja , não é o log geral.
         _ -> putStrLn "Opção inválida. Por favor, escolha entre itens, usuarios, emprestimos ou log."
+
+logGeral :: String -> String -> String -> String -> IO ()
+logGeral timestamp acao status detalhe =
+    let statusFmt = if null detalhe then status else status ++ " - " ++ detalhe
+        linha = "[" ++ timestamp ++ "] " ++ acao ++ " (" ++ statusFmt ++ ")\n"
+    in appendFile "log.txt" linha
+
+historicoAlteracoes :: String -> String -> String -> String -> String -> String -> IO ()
+historicoAlteracoes timestamp usuario campo antes depois alteradoPor =
+    let linhas = [ "[" ++ timestamp ++ "] Usuário \"" ++ usuario ++ "\" teve " ++ campo ++ " alterado:",
+                   "Antes: " ++ antes,
+                   "Depois: " ++ depois,
+                   "Alterado por: " ++ alteradoPor,
+                   "" ]
+        texto = unlines linhas
+    in appendFile "historico_alteracoes.txt" texto
