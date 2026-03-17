@@ -3,9 +3,9 @@ module ImportacaoExportacao where
 import Estruturas
 import Text.Read (readMaybe)
 
- 
+-- ==========================================================
 -- EXPORTAÇÃO (Struct -> CSV)
-
+-- ==========================================================
 
 tipo_str :: TipoMidia -> String
 tipo_str Livro = "livro"
@@ -17,24 +17,27 @@ tipo_de_str "filme" = Filme
 tipo_de_str "jogo" = Jogo
 tipo_de_str _       = Livro
 
+-- Trocado 'i' por 'item' para manter o padrao didatico e claro
 itemParaCSV :: Item -> String
-itemParaCSV i = "\"" ++ tipo_str (tipo i) ++ "\";\"" ++ titulo i ++ "\";\"" ++ autor i ++ "\";\"" ++ show (ano i) ++ "\";\"" ++ show (id_item i) ++ "\""
+itemParaCSV item = "\"" ++ tipo_str (tipo item) ++ "\";\"" ++ titulo item ++ "\";\"" ++ autor item ++ "\";\"" ++ show (ano item) ++ "\";\"" ++ show (id_item item) ++ "\""
 
+-- Trocado 'u' por 'usuario'
 userParaCSV :: Usuario -> String
-userParaCSV u = "\"" ++ nome_user u ++ "\";\"" ++ email_user u ++ "\";\"" ++ show (matricula_user u) ++ "\""
+userParaCSV usuario = "\"" ++ nome_user usuario ++ "\";\"" ++ email_user usuario ++ "\";\"" ++ show (matricula_user usuario) ++ "\""
 
+-- Trocado 'e' por 'emprestimo'
 empParaCSV :: Emprestimo -> String
-empParaCSV e = "\"" ++ show (id_item_emp e) ++ "\";\"" ++ show (mat_user_emp e) ++ "\";\"" ++ data_emp e ++ "\""
+empParaCSV emprestimo = "\"" ++ show (id_item_emp emprestimo) ++ "\";\"" ++ show (mat_user_emp emprestimo) ++ "\";\"" ++ data_emp emprestimo ++ "\""
 
-
+-- ==========================================================
 -- IMPORTAÇÃO E VALIDAÇÃO (CSV -> Struct)
+-- ==========================================================
 
-
--- Remover as aspas duplas das strings 
+-- Remove as aspas duplas de uma string (escrito de forma explicita)
 remover_aspas :: String -> String
 remover_aspas linha = filter (\c -> c /= '\"') linha
 
--- Corta a string em todo ponto virgula (;)
+-- Corta a string toda vez que acha um ponto e virgula (;)
 split_csv :: String -> [String]
 split_csv "" = [""]
 split_csv (c:cs)
@@ -42,7 +45,7 @@ split_csv (c:cs)
     | otherwise = (c : head resto) : tail resto
     where resto = split_csv cs
 
--- Tenta montar um Item 
+-- Tenta montar um Item a partir do texto
 montar_item_da_linha :: String -> Maybe Item
 montar_item_da_linha linha =
     let partes = split_csv (remover_aspas linha)
@@ -52,7 +55,7 @@ montar_item_da_linha linha =
                 _ -> Nothing
        else Nothing
 
--- Tenta montar um Usuario 
+-- Tenta montar um Usuario a partir do texto
 montar_usuario_da_linha :: String -> Maybe Usuario
 montar_usuario_da_linha linha =
     let partes = split_csv (remover_aspas linha)
@@ -62,7 +65,7 @@ montar_usuario_da_linha linha =
                 _ -> Nothing
        else Nothing
 
--- Tenta montar um Emprestimo 
+-- Tenta montar um Emprestimo a partir do texto
 montar_emprestimo_da_linha :: String -> Maybe Emprestimo
 montar_emprestimo_da_linha linha =
     let partes = split_csv (remover_aspas linha)
@@ -72,7 +75,7 @@ montar_emprestimo_da_linha linha =
                 _ -> Nothing
        else Nothing
 
--- Funcao para tirarr os (Nothing) da lista e nao dar erro
+-- Funcao manual e recursiva para limpar os erros (Nothing) da lista
 pegar_apenas_validos :: [Maybe a] -> [a]
 pegar_apenas_validos [] = []
 pegar_apenas_validos (Just x : xs) = x : pegar_apenas_validos xs

@@ -3,19 +3,19 @@ module Edicao where
 import Estruturas
 import Data.List (sortOn)
 
-
+-- ==========================================================
 -- FUNÇÕES DE EDIÇÃO DE ITENS
-
+-- ==========================================================
 
 editar_titulo_item :: String -> Int -> String -> BancoDeDados -> BancoDeDados
 editar_titulo_item momento id_alvo novo_titulo banco =
-    let itens_atualizados = map (\i -> if id_item i == id_alvo then i { titulo = novo_titulo } else i) (lista_itens banco)
-        item_antigo = head (filter (\i -> id_item i == id_alvo) (lista_itens banco))
+    let itens_atualizados = map (\item -> if id_item item == id_alvo then item { titulo = novo_titulo } else item) (lista_itens banco)
+        item_antigo = head (filter (\item -> id_item item == id_alvo) (lista_itens banco))
         
         log_ed = LogEdicao momento ("Item ID " ++ show id_alvo) ("Titulo: " ++ titulo item_antigo) ("Titulo: " ++ novo_titulo) "Sistema"
         novo_hist_ed = historico_edicoes banco ++ [log_ed]
         
-        -- salvar no Log Geral
+        -- Agora salva no Log Geral também!
         log_op = LogOperacao momento ("Edição item: código \"" ++ show id_alvo ++ "\"") "Sistema" Sucesso ""
         novo_hist_op = historico_operacoes banco ++ [log_op]
         
@@ -23,8 +23,8 @@ editar_titulo_item momento id_alvo novo_titulo banco =
 
 editar_autor_item :: String -> Int -> String -> BancoDeDados -> BancoDeDados
 editar_autor_item momento id_alvo novo_autor banco =
-    let itens_atualizados = map (\i -> if id_item i == id_alvo then i { autor = novo_autor } else i) (lista_itens banco)
-        item_antigo = head (filter (\i -> id_item i == id_alvo) (lista_itens banco))
+    let itens_atualizados = map (\item -> if id_item item == id_alvo then item { autor = novo_autor } else item) (lista_itens banco)
+        item_antigo = head (filter (\item -> id_item item == id_alvo) (lista_itens banco))
         
         log_ed = LogEdicao momento ("Item ID " ++ show id_alvo) ("Autor: " ++ autor item_antigo) ("Autor: " ++ novo_autor) "Sistema"
         novo_hist_ed = historico_edicoes banco ++ [log_ed]
@@ -36,8 +36,8 @@ editar_autor_item momento id_alvo novo_autor banco =
 
 editar_ano_item :: String -> Int -> Int -> BancoDeDados -> BancoDeDados
 editar_ano_item momento id_alvo novo_ano banco =
-    let itens_atualizados = map (\i -> if id_item i == id_alvo then i { ano = novo_ano } else i) (lista_itens banco)
-        item_antigo = head (filter (\i -> id_item i == id_alvo) (lista_itens banco))
+    let itens_atualizados = map (\item -> if id_item item == id_alvo then item { ano = novo_ano } else item) (lista_itens banco)
+        item_antigo = head (filter (\item -> id_item item == id_alvo) (lista_itens banco))
         
         log_ed = LogEdicao momento ("Item ID " ++ show id_alvo) ("Ano: " ++ show (ano item_antigo)) ("Ano: " ++ show novo_ano) "Sistema"
         novo_hist_ed = historico_edicoes banco ++ [log_ed]
@@ -48,19 +48,19 @@ editar_ano_item momento id_alvo novo_ano banco =
     in banco { lista_itens = itens_atualizados, historico_edicoes = novo_hist_ed, historico_operacoes = novo_hist_op }
 
 
-
+-- ==========================================================
 -- FUNÇÕES DE EDIÇÃO DE USUÁRIOS
-
+-- ==========================================================
 
 editar_nome_usuario :: String -> Int -> String -> BancoDeDados -> BancoDeDados
 editar_nome_usuario momento mat_alvo novo_nome banco =
-    let users_atualizados = map (\u -> if matricula_user u == mat_alvo then u { nome_user = novo_nome } else u) (lista_usuarios banco)
-        user_antigo = head (filter (\u -> matricula_user u == mat_alvo) (lista_usuarios banco))
+    let users_atualizados = map (\usuario -> if matricula_user usuario == mat_alvo then usuario { nome_user = novo_nome } else usuario) (lista_usuarios banco)
+        user_antigo = head (filter (\usuario -> matricula_user usuario == mat_alvo) (lista_usuarios banco))
         
         log_ed = LogEdicao momento ("Usuario mat " ++ show mat_alvo) ("Nome: " ++ nome_user user_antigo) ("Nome: " ++ novo_nome) "Sistema"
         novo_hist_ed = historico_edicoes banco ++ [log_ed]
         
-        -- salvar no log geral
+        -- Agora salva no Log Geral também!
         log_op = LogOperacao momento ("Edição usuário: matrícula \"" ++ show mat_alvo ++ "\"") "Sistema" Sucesso ""
         novo_hist_op = historico_operacoes banco ++ [log_op]
         
@@ -68,8 +68,8 @@ editar_nome_usuario momento mat_alvo novo_nome banco =
 
 editar_email_usuario :: String -> Int -> String -> BancoDeDados -> BancoDeDados
 editar_email_usuario momento mat_alvo novo_email banco =
-    let users_atualizados = map (\u -> if matricula_user u == mat_alvo then u { email_user = novo_email } else u) (lista_usuarios banco)
-        user_antigo = head (filter (\u -> matricula_user u == mat_alvo) (lista_usuarios banco))
+    let users_atualizados = map (\usuario -> if matricula_user usuario == mat_alvo then usuario { email_user = novo_email } else usuario) (lista_usuarios banco)
+        user_antigo = head (filter (\usuario -> matricula_user usuario == mat_alvo) (lista_usuarios banco))
         
         log_ed = LogEdicao momento ("Usuario mat " ++ show mat_alvo) ("Email: " ++ email_user user_antigo) ("Email: " ++ novo_email) "Sistema"
         novo_hist_ed = historico_edicoes banco ++ [log_ed]
@@ -79,9 +79,9 @@ editar_email_usuario momento mat_alvo novo_email banco =
         
     in banco { lista_usuarios = users_atualizados, historico_edicoes = novo_hist_ed, historico_operacoes = novo_hist_op }
 
-
--- BUSCA BINARIA RECURSIVA DIRETA 
-
+-- ==========================================================
+-- BUSCA BINARIA RECURSIVA DIRETA (Exigencia do PDF)
+-- ==========================================================
 
 busca_binaria_item :: Int -> [Item] -> Int -> Int -> [Item]
 busca_binaria_item alvo itens inicio fim
