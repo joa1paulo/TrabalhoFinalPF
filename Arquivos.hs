@@ -3,186 +3,54 @@ module Arquivos where
 import Estruturas
 import System.IO
 import System.Directory (doesFileExist)
-import Text.read (readMaybe)
 
--- função auxiliar para substituir Intercalate que vem de uma biblioteca externa.
-meuIntercalate :: String -> [String] -> String
-meuIntercalate _ [] = ""  -- caso base: lista vazia retorna string vazia
-meuIntercalate _ [x] = x  -- caso base: lista com um elemento retorna o elemento
-meuIntercalate sep (x:xs) = x ++ sep ++ meuIntercalate sep xs  -- recursão: concatena elemento, separador e recursão no resto
-
--- função auxiliar para substituir SplitOn que vem de uma biblioteca externa.
-meuSplitOn :: Char -> String -> [String]
-meuSplitOn _ "" = []  -- caso base: string vazia retorna lista vazia
-meuSplitOn c s = 
-    let (antes, depois) = break (== c) s  -- quebra a string no primeiro caractere separador
-    in antes : case depois of
-                 [] -> []  -- se não há resto, termina a lista
-                 (_:resto) -> meuSplitOn c resto  -- recursão no resto da string
-
--- Função auxiliar para converter Item para linha CSV
-itemParaCSV :: Item -> String
-itemParaCSV item = meuIntercalate "," [
-    show (id_item item), --converte int para string
-    nome_titulo item, --nao usa show pq ja é string
-    autor_diretor item, --nao usa show pq ja é string
-    show (ano_lancamento item),
-    show (tipo_midia item),
-    show (ta_disponivel item),
-    show (fila_espera item)
-    ]
-
--- Função auxiliar para converter Usuario para linha CSV
-usuarioParaCSV :: Usuario -> String
-usuarioParaCSV user = meuIntercalate "," [
-    show (matricula_user user),
-    nome_user user, --nao usa show pq ja é string
-    email_user user, --nao usa show pq ja é string
-    show (meus_emprestimos user)
-    ] -- a função meuIntercalate junta os elementos os separando por ,
-
--- | Retorna a lista de logs do banco de dados.
--- Foi mantido como String para compatibilidade com o histórico atual.
-lista_log :: BancoDeDados -> [String]
-lista_log = historico_log
-
--- | Converte uma entrada de log (string) para uma linha CSV com as colunas:
--- timestamp,acao,detalhes
-logEntryParaCSV :: String -> String
-logEntryParaCSV entry =
-    let (timestamp, rest) = case entry of
-            ('[':xs) -> case break (== ']') xs of
-                (ts, ']':r) -> (ts, r)
-                _           -> ("", entry)
-            _ -> ("", entry)
-        action = dropWhile (== ' ') rest
-        csvEscape s = '"' : concatMap escapeChar s ++ "\""
-        escapeChar '"' = "\"\""
-        escapeChar c    = [c]
-    in csvEscape timestamp ++ "," ++ csvEscape action ++ ","
-
--- Exportar itens e usuários para CSV
-ArquivarCSV :: BancoDeDados -> IO () -- usa IO pois vai escrever em arquivos, gerando efeitos colaterais
-ArquivarCSV bd = do
-    let itensCSV = map itemParaCSV (lista_itens bd) --transforma cada item  da lista de itens em uma linha CSV
-    let usuariosCSV = map usuarioParaCSV (lista_usuarios bd) --transforma cada usuario da lista de usuarios em uma linha CSV
-    writeFile "itens.csv" (unlines ("id,nome,autor,ano,tipo,disponivel,fila" : itensCSV))  -- escreve header e itens no arquivo CSV
-    writeFile "usuarios.csv" (unlines ("matricula,nome,email,emprestimos" : usuariosCSV))  -- escreve header e usuários no arquivo CSV
-
--- Exportar itens e usuários para CSV com usuario escolhendo o nome do arquivo
-ArquivarCSVcustom :: BancoDeDados -> IO () -- usa IO pois vai escrever em arquivos, gerando efeitos colaterais
-ArquivarCSVcustom bd = do
-    let itensCSV = map itemParaCSV (lista_itens bd) --transforma cada item  da lista de itens em uma linha CSV
-    let usuariosCSV = map usuarioParaCSV (lista_usuarios bd) --transforma cada usuario da lista de usuarios em uma linha CSV
-    putStrLn "Digite o nome do arquivo para salvar os itens (ex: itens.csv):"
-    nomeArquivoItem <- getLine  -- lê o nome do arquivo para itens do usuário
-    writeFile nomeArquivoItem (unlines ("id,nome,autor,ano,tipo,disponivel,fila" : itensCSV))  -- escreve itens no arquivo escolhido
-    putStrLn "Digite o nome do arquivo para salvar os usuários (ex: usuarios.csv):"
-    nomeArquivoUsuario <- getLine  -- lê o nome do arquivo para usuários do usuário
-    writeFile nomeArquivoUsuario (unlines ("matricula,nome,email,emprestimos" : usuariosCSV))  -- escreve usuários no arquivo escolhido
-
--- Função auxiliar para parsear linha CSV para Item
-csvParaItem :: String -> Maybe Item -- converte cada string que está ordenada, no formato CSV, para um item.
-csvParaItem linha = case meuSplitOn ',' linha of --a função meuSplitOn faz o contrário da meuIntercalate e o case é para garantir que a linha toda tem o numero "certo" de espaços 
-    [idStr, nome, autor, anoStr, tipoStr, dispStr, filaStr] ->
-        Just (Item (readMaybe idStr >>= \x -> Just x) nome autor (readMaybe anoStr >>= \x -> Just x) (readMaybe tipoStr >>= \x -> Just x) (readMaybe dispStr >>= \x -> Just x) (readMaybe filaStr >>= \x -> Just x  )) -- converte cada string separarada para seu devido tipo.
-    _ -> Nothing -- se o case falhar , a linha está no formato errado.
-
--- Função auxiliar para parsear linha CSV para Usuario
-csvParaUsuario :: String -> Maybe Usuario -- converte cada string que está ordenada, no formato CSV, para um usuario.
-csvParaUsuario linha = case meuSplitOn ',' linha of --a função meuSplitOn faz o contrário da meuIntercalate e o case é para garantir que a linha toda tem o numero "certo" de espaços 
-    [matStr, nome, email, empStr] ->
-        Just (Usuario (readMaybe matStr >>= \x -> Just x) nome email (readMaybe empStr >>= \x -> Just x))
-    _ -> Nothing -- se o case falhar , a linha está no formato errado.
-
--- Importar de CSV
-importarCSV :: IO BancoDeDados
-importarCSV = do
-    itensLinhas <- readFile "itens.csv" >>= return . tail . lines  -- pula header
-    usuariosLinhas <- readFile "usuarios.csv" >>= return . tail . lines
-    let itens = map csvParaItem itensLinhas -- transforma csv em itens com tipos adequados
-    let usuarios = map csvParaUsuario usuariosLinhas -- transforma csv em usuarios com tipos adequados
-    return (BancoDeDados itens usuarios [] [])  -- emprestimos e log vazios devem ser colocado aqui, quando estiver pronto
-
--- Salvar o banco de dados (estado atual do sistema) no arquivo backup.txt
-salvarBanco :: BancoDeDados -> IO ()
-salvarBanco bd = do
-    let arquivo = "backup.txt"
-    exists <- doesFileExist arquivo  -- verifica se o arquivo de backup existe
-    if exists
-        then do
-            putStrLn "Backup atualizado com sucesso!"
-            writeFile arquivo (show bd) --converte o banco de dados para string e salva no arquivo
-        else do
-            putStrLn "O arquivo de backup não existe. Deseja criar um novo backup? (s/n)"
-            resposta <- getLine  -- lê a resposta do usuário
-            case resposta of
-                "s" -> do
-                    writeFile arquivo (show bd)  -- cria e escreve o backup
-                    putStrLn "Backup criado com sucesso!"
-                "n" -> putStrLn "Operação de backup cancelada."
-                 _  -> putStrLn "Resposta inválida.Cancelando Operação de Backup."
-
-
--- Carregar o banco de dados do arquivo backup.txt
-carregarBanco :: IO BancoDeDados
-carregarBanco = do
-    let arquivo = "backup.txt"
-    exists <- doesFileExist arquivo  -- verifica se o arquivo existe
+-- Carregar o banco de dados (Lógica do colega adaptada para o arquivo correto)
+carregar_banco :: IO BancoDeDados
+carregar_banco = do
+    let arquivo = "biblioteca.txt" -- Trocado "backup.txt" para o exigido no PDF
+    exists <- doesFileExist arquivo  -- Usando a variavel 'exists' do colega
     if exists
         then do
             conteudo <- readFile arquivo  -- lê o conteúdo do arquivo
-            putStrLn "Banco de dados carregado com sucesso!"
-            return (read conteudo)  -- converte string de volta para BancoDeDados
-            
+            -- Omitimos o print de sucesso aqui para não sujar a tela inicial do menu
+            return (read conteudo :: BancoDeDados)  -- converte string de volta para BancoDeDados
         else do
-            putStrLn "O arquivo de backup não existe."
-            return (BancoDeDados [] [] [] [])  -- retorna banco vazio se não existe
+            -- Retorna banco vazio se não existe (como o colega fez)
+            return banco_vazio
 
--- Função para o usuario escolher qual arquivo especifico quer exportar (itens, usuarios, emprestimos ou log) em um arquivo específico
-ExportarCSVespecifico :: BancoDeDados -> IO ()
-ExportarCSVespecifico bd = do
-    putStrLn "O que você deseja exportar? (itens/usuarios/emprestimos/log)"
-    escolha <- getLine  -- lê a escolha do usuário
-    case escolha of
-        "itens" -> do
-            let itensCSV = map itemParaCSV (lista_itens bd)  -- converte itens para CSV
-            putStrLn "Digite o nome do arquivo para salvar os itens (ex: itens.csv):"
-            nomeArquivoItem <- getLine  -- lê nome do arquivo
-            writeFile nomeArquivoItem (unlines ("id,nome,autor,ano,tipo,disponivel,fila" : itensCSV))  -- escreve itens
-            putStrLn "Itens exportados com sucesso!"
-        "usuarios" -> do
-            let usuariosCSV = map usuarioParaCSV (lista_usuarios bd)  -- converte usuários para CSV
-            putStrLn "Digite o nome do arquivo para salvar os usuários (ex: usuarios.csv):"
-            nomeArquivoUsuario <- getLine  -- lê nome do arquivo
-            writeFile nomeArquivoUsuario (unlines ("matricula,nome,email,emprestimos" : usuariosCSV))  -- escreve usuários
-            putStrLn "Usuários exportados com sucesso!"
-        "emprestimos" -> do
-            let emprestimosCSV = map emprestimoParaCSV (lista_emprestimos bd)  -- converte empréstimos para CSV
-            putStrLn "Digite o nome do arquivo para salvar os empréstimos (ex:  emprestimos.csv):"
-            nomeArquivoEmprestimo <- getLine  -- lê nome do arquivo
-            writeFile nomeArquivoEmprestimo (unlines ("id_usuario,id_item,data_emprestimo,data_devolucao" : emprestimosCSV))  -- escreve empréstimos
-            putStrLn "Empréstimos exportados com sucesso!"
-        "log" -> do
-            let logCSV = map logEntryParaCSV (lista_log bd)  -- converte log para CSV
-            putStrLn "Digite o nome do arquivo para salvar o log (ex: log.csv):"
-            nomeArquivoLog <- getLine  -- lê nome do arquivo
-            writeFile nomeArquivoLog (unlines ("timestamp,acao,detalhes" : logCSV))  -- escreve log somente do banco de dados atual
-            putStrLn "Log exportado com sucesso!" -- ou seja , não é o log geral.
-        _ -> putStrLn "Opção inválida. Por favor, escolha entre itens, usuarios, emprestimos ou log."
-
-logGeral :: String -> String -> String -> String -> IO ()
-logGeral timestamp acao status detalhe =
-    let statusFmt = if null detalhe then status else status ++ " - " ++ detalhe
-        linha = "[" ++ timestamp ++ "] " ++ acao ++ " (" ++ statusFmt ++ ")\n"
-    in appendFile "log.txt" linha
-
-historicoAlteracoes :: String -> String -> String -> String -> String -> String -> IO ()
-historicoAlteracoes timestamp usuario campo antes depois alteradoPor =
-    let linhas = [ "[" ++ timestamp ++ "] Usuário \"" ++ usuario ++ "\" teve " ++ campo ++ " alterado:",
-                   "Antes: " ++ antes,
-                   "Depois: " ++ depois,
-                   "Alterado por: " ++ alteradoPor,
-                   "" ]
-        texto = unlines linhas
-    in appendFile "historico_alteracoes.txt" texto
+-- Salvar o banco de dados (Estrutura do colega com os textos obrigatorios do PDF)
+salvar_banco :: BancoDeDados -> IO ()
+salvar_banco bd = do
+    let arquivo = "biblioteca.txt" -- PDF exige esse nome
+    exists <- doesFileExist arquivo
+    if not exists
+        then do
+            -- Texto EXATAMENTE igual ao PDF (inicia em minuscula e com acentos)
+            putStrLn "\narquivo biblioteca.txt não existe. Deseja criar um novo? (S/N)"
+            resposta <- getLine  -- lê a resposta do usuário
+            
+            -- Usando o 'case' que o colega implementou, adaptado para aceitar S e s
+            case resposta of
+                "S" -> do
+                    writeFile arquivo (show bd)  -- cria e escreve o backup
+                    putStrLn "Até a próxima."
+                "s" -> do
+                    writeFile arquivo (show bd)
+                    putStrLn "Até a próxima."
+                _ -> do 
+                    putStrLn "Até a próxima."
+        else do
+            -- Texto EXATAMENTE igual ao PDF (inicia em maiuscula e com acentos)
+            putStrLn "\nArquivo biblioteca.txt já existe. Deseja sobrescrevê-lo? (S/N)"
+            resposta <- getLine
+            
+            -- Usando o 'case' do colega aqui também
+            case resposta of
+                "S" -> do
+                    writeFile arquivo (show bd)
+                    putStrLn "Até a próxima."
+                "s" -> do
+                    writeFile arquivo (show bd)
+                    putStrLn "Até a próxima."
+                _ -> do 
+                    putStrLn "Até a próxima."

@@ -4,6 +4,25 @@ import Estruturas
 import Text.Read (readMaybe)
 
 -- ==========================================================
+-- FUNÇÕES AUXILIARES DO COLEGA (Recursão Pura)
+-- ==========================================================
+
+-- função auxiliar para substituir Intercalate que vem de uma biblioteca externa.
+meuIntercalate :: String -> [String] -> String
+meuIntercalate _ [] = ""  -- caso base: lista vazia retorna string vazia
+meuIntercalate _ [x] = x  -- caso base: lista com um elemento retorna o elemento
+meuIntercalate sep (x:xs) = x ++ sep ++ meuIntercalate sep xs  -- recursão
+
+-- função auxiliar para substituir SplitOn que vem de uma biblioteca externa.
+meuSplitOn :: Char -> String -> [String]
+meuSplitOn _ "" = []  -- caso base: string vazia retorna lista vazia
+meuSplitOn c s = 
+    let (antes, depois) = break (== c) s  -- quebra a string no primeiro caractere separador
+    in antes : case depois of
+                 [] -> []  -- se não há resto, termina a lista
+                 (_:resto) -> meuSplitOn c resto  -- recursão no resto da string
+
+-- ==========================================================
 -- EXPORTAÇÃO (Struct -> CSV)
 -- ==========================================================
 
@@ -17,17 +36,32 @@ tipo_de_str "filme" = Filme
 tipo_de_str "jogo" = Jogo
 tipo_de_str _       = Livro
 
--- Trocado 'i' por 'item' para manter o padrao didatico e claro
+colocar_aspas :: String -> String
+colocar_aspas s = "\"" ++ s ++ "\""
+
+-- Usando a funcao 'meuIntercalate' do colega para montar o CSV limpo!
 itemParaCSV :: Item -> String
-itemParaCSV item = "\"" ++ tipo_str (tipo item) ++ "\";\"" ++ titulo item ++ "\";\"" ++ autor item ++ "\";\"" ++ show (ano item) ++ "\";\"" ++ show (id_item item) ++ "\""
+itemParaCSV item = meuIntercalate ";" [
+    colocar_aspas (tipo_str (tipo item)),
+    colocar_aspas (titulo item),
+    colocar_aspas (autor item),
+    colocar_aspas (show (ano item)),
+    colocar_aspas (show (id_item item))
+    ]
 
--- Trocado 'u' por 'usuario'
 userParaCSV :: Usuario -> String
-userParaCSV usuario = "\"" ++ nome_user usuario ++ "\";\"" ++ email_user usuario ++ "\";\"" ++ show (matricula_user usuario) ++ "\""
+userParaCSV usuario = meuIntercalate ";" [
+    colocar_aspas (nome_user usuario),
+    colocar_aspas (email_user usuario),
+    colocar_aspas (show (matricula_user usuario))
+    ]
 
--- Trocado 'e' por 'emprestimo'
 empParaCSV :: Emprestimo -> String
-empParaCSV emprestimo = "\"" ++ show (id_item_emp emprestimo) ++ "\";\"" ++ show (mat_user_emp emprestimo) ++ "\";\"" ++ data_emp emprestimo ++ "\""
+empParaCSV emprestimo = meuIntercalate ";" [
+    colocar_aspas (show (id_item_emp emprestimo)),
+    colocar_aspas (show (mat_user_emp emprestimo)),
+    colocar_aspas (data_emp emprestimo)
+    ]
 
 -- ==========================================================
 -- IMPORTAÇÃO E VALIDAÇÃO (CSV -> Struct)
@@ -37,38 +71,28 @@ empParaCSV emprestimo = "\"" ++ show (id_item_emp emprestimo) ++ "\";\"" ++ show
 remover_aspas :: String -> String
 remover_aspas linha = filter (\c -> c /= '\"') linha
 
--- Corta a string toda vez que acha um ponto e virgula (;)
-split_csv :: String -> [String]
-split_csv "" = [""]
-split_csv (c:cs)
-    | c == ';'  = "" : resto
-    | otherwise = (c : head resto) : tail resto
-    where resto = split_csv cs
-
--- Tenta montar um Item a partir do texto
+-- Usando a funcao 'meuSplitOn' do colega para fatiar o texto!
 montar_item_da_linha :: String -> Maybe Item
 montar_item_da_linha linha =
-    let partes = split_csv (remover_aspas linha)
+    let partes = meuSplitOn ';' (remover_aspas linha)
     in if length partes == 5
        then case (readMaybe (partes !! 3) :: Maybe Int, readMaybe (partes !! 4) :: Maybe Int) of
                 (Just ano_int, Just id_int) -> Just (Item id_int (partes !! 1) (partes !! 2) ano_int (tipo_de_str (partes !! 0)) True [])
                 _ -> Nothing
        else Nothing
 
--- Tenta montar um Usuario a partir do texto
 montar_usuario_da_linha :: String -> Maybe Usuario
 montar_usuario_da_linha linha =
-    let partes = split_csv (remover_aspas linha)
+    let partes = meuSplitOn ';' (remover_aspas linha)
     in if length partes == 3
        then case readMaybe (partes !! 2) :: Maybe Int of
                 Just mat_int -> Just (Usuario mat_int (partes !! 0) (partes !! 1) [])
                 _ -> Nothing
        else Nothing
 
--- Tenta montar um Emprestimo a partir do texto
 montar_emprestimo_da_linha :: String -> Maybe Emprestimo
 montar_emprestimo_da_linha linha =
-    let partes = split_csv (remover_aspas linha)
+    let partes = meuSplitOn ';' (remover_aspas linha)
     in if length partes == 3
        then case (readMaybe (partes !! 0) :: Maybe Int, readMaybe (partes !! 1) :: Maybe Int) of
                 (Just id_int, Just mat_int) -> Just (Emprestimo id_int mat_int (partes !! 2))

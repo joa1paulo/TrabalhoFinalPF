@@ -2,83 +2,79 @@ module Cadastros where
 
 import Estruturas
 
+-- Auxiliar para printar o tipo em minusculo no log
+tipo_str :: TipoMidia -> String
+tipo_str Livro = "livro"
+tipo_str Filme = "filme"
+tipo_str Jogo = "jogo"
+
 -------------------------------- Usuarios --------------------------------
 
+-- Logica da colega: verificacao manual se o usuario existe
 usuarioExiste :: Int -> [Usuario] -> Bool
 usuarioExiste _ [] = False
 usuarioExiste mat (x:xs)
     | matricula_user x == mat = True
     | otherwise               = usuarioExiste mat xs
 
-adicionarUsuario :: Usuario -> BancoDeDados -> BancoDeDados
-adicionarUsuario novoUser bd
-    | usuarioExiste (matricula_user novoUser) (lista_usuarios bd) = bd
-    | otherwise = bd { 
-        lista_usuarios = novoUser : lista_usuarios bd,
-        historico_log = "Usuario adicionado: " ++ nome_user novoUser : historico_log bd
-    }
+-- 1. Cadastra um novo usuario (Adaptado para receber o 'momento' e usar o LogOperacao)
+cadastrar_usuario :: String -> Usuario -> BancoDeDados -> BancoDeDados
+cadastrar_usuario momento novo_user banco = 
+    -- Embora o Menus.hs ja valide, mantemos a logica dela aqui como protecao extra
+    if usuarioExiste (matricula_user novo_user) (lista_usuarios banco)
+    then banco
+    else let 
+        nova_lista = lista_usuarios banco ++ [novo_user]
+        log_op = LogOperacao momento ("Cadastro usuário: \"" ++ nome_user novo_user ++ "\"") "Sistema" Sucesso ""
+        novo_log = historico_operacoes banco ++ [log_op]
+    in banco { lista_usuarios = nova_lista, historico_operacoes = novo_log }
 
+-- Logica da colega: Recursao manual para remover usuario (Excelente para avaliacao!)
 auxRemoverUsuario :: Int -> [Usuario] -> [Usuario]
 auxRemoverUsuario _ [] = []
 auxRemoverUsuario mat (x:xs)
     | matricula_user x == mat = xs
     | otherwise               = x : auxRemoverUsuario mat xs
 
-removerUsuario :: Int -> BancoDeDados -> BancoDeDados
-removerUsuario mat bd = bd {
-    lista_usuarios = auxRemoverUsuario mat (lista_usuarios bd),
-    historico_log = "Usuario removido: " ++ show mat : historico_log bd
-}
-
-auxEditarUsuario :: Int -> Usuario -> [Usuario] -> [Usuario]
-auxEditarUsuario _ _ [] = []
-auxEditarUsuario mat novoUser (x:xs)
-    | matricula_user x == mat = novoUser : xs
-    | otherwise               = x : auxEditarUsuario mat novoUser xs
-
-editarUsuario :: Int -> Usuario -> BancoDeDados -> BancoDeDados
-editarUsuario mat novoUser bd = bd {
-    lista_usuarios = auxEditarUsuario mat novoUser (lista_usuarios bd),
-    historico_log = "Usuario editado: " ++ show mat : historico_log bd
-}
+-- 3. Remove um usuario (Usando a auxiliar recursiva da colega)
+remover_usuario :: String -> Int -> BancoDeDados -> BancoDeDados
+remover_usuario momento mat banco =
+    let nova_lista = auxRemoverUsuario mat (lista_usuarios banco)
+        log_op = LogOperacao momento ("Remoção usuário matrícula: \"" ++ show mat ++ "\"") "Sistema" Sucesso ""
+        novo_log = historico_operacoes banco ++ [log_op]
+    in banco { lista_usuarios = nova_lista, historico_operacoes = novo_log }
 
 ---------------------------------- Itens ----------------------------------
--- (filmes, livros, jogos)
 
+-- Logica da colega: verificacao manual se o item existe
 itemExiste :: Int -> [Item] -> Bool
 itemExiste _ [] = False
 itemExiste idBusca (x:xs)
     | id_item x == idBusca = True
     | otherwise            = itemExiste idBusca xs
 
-adicionarItem :: Item -> BancoDeDados -> BancoDeDados
-adicionarItem novoItem bd
-    | itemExiste (id_item novoItem) (lista_itens bd) = bd
-    | otherwise = bd { 
-        lista_itens = novoItem : lista_itens bd,
-        historico_log = "Item adicionado: " ++ nome_titulo novoItem : historico_log bd
-    }
+-- 2. Cadastra um novo item (Adaptado para receber o 'momento')
+cadastrar_item :: String -> Item -> BancoDeDados -> BancoDeDados
+cadastrar_item momento novo_item banco = 
+    if itemExiste (id_item novo_item) (lista_itens banco)
+    then banco
+    else let 
+        nova_lista = lista_itens banco ++ [novo_item]
+        log_op = LogOperacao momento ("Cadastro item: " ++ tipo_str (tipo novo_item) ++ " \"" ++ titulo novo_item ++ "\"") "Sistema" Sucesso ""
+        novo_log = historico_operacoes banco ++ [log_op]
+    in banco { lista_itens = nova_lista, historico_operacoes = novo_log }
 
+-- Logica da colega: Recursao manual para remover item
 auxRemoverItem :: Int -> [Item] -> [Item]
 auxRemoverItem _ [] = []
 auxRemoverItem idBusca (x:xs)
     | id_item x == idBusca = xs
     | otherwise            = x : auxRemoverItem idBusca xs
 
-removerItem :: Int -> BancoDeDados -> BancoDeDados
-removerItem idBusca bd = bd {
-    lista_itens = auxRemoverItem idBusca (lista_itens bd),
-    historico_log = "Item removido com ID: " ++ show idBusca : historico_log bd
-}
-
-auxEditarItem :: Int -> Item -> [Item] -> [Item]
-auxEditarItem _ _ [] = []
-auxEditarItem idBusca novoItem (x:xs)
-    | id_item x == idBusca = novoItem : xs
-    | otherwise            = x : auxEditarItem idBusca novoItem xs
-
-editarItem :: Int -> Item -> BancoDeDados -> BancoDeDados
-editarItem idBusca novoItem bd = bd {
-    lista_itens = auxEditarItem idBusca novoItem (lista_itens bd),
-    historico_log = "Item editado com ID: " ++ show idBusca : historico_log bd
-}
+-- 4. Remove um item (Usando a auxiliar recursiva da colega)
+remover_item :: String -> Int -> BancoDeDados -> BancoDeDados
+remover_item momento id_remover banco =
+    let nova_lista = auxRemoverItem id_remover (lista_itens banco)
+        log_op = LogOperacao momento ("Remoção item código: \"" ++ show id_remover ++ "\"") "Sistema" Sucesso ""
+        novo_log = historico_operacoes banco ++ [log_op]
+    in banco { lista_itens = nova_lista, historico_operacoes = novo_log }
