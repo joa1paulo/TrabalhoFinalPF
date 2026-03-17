@@ -116,7 +116,13 @@ adicionar_fila_espera momento id_item_alvo mat_user banco =
         -- Validar se o usuario fantasma ta tentando entrar na fila
         user_busca = filter (\usuario -> matricula_user usuario == mat_user) (lista_usuarios banco)
     in if null item_busca || null user_busca
-       then banco -- Protecao extra contra fantasmas
+       then let
+           -- CORRIGIDO: Adicionado o log de erro para a fila de espera também!
+           motivo = if null item_busca then "Item não encontrado" else "Usuário não encontrado"
+           log_erro = LogOperacao momento ("Tentativa de fila de espera (ID: " ++ show id_item_alvo ++ ")") (show mat_user) Erro motivo
+           novo_log = historico_operacoes banco ++ [log_erro]
+       in banco { historico_operacoes = novo_log }
+       
        else let
            item_alvo = head item_busca
        -- Protecao: usa a funcao de voces pra nao botar o cara duas vezes na fila

@@ -27,28 +27,28 @@ usuarios_mais_ativos banco =
         nomes = map pegar_nome usuarios_reais
         contagem = map (\grupo -> (head grupo, length grupo)) (group (sort nomes))
         
-    -- CORRIGIDO: Ordena crescente pelo segundo elemento (snd) e depois inverte (reverse)
+    -- Ordena crescente pelo segundo elemento (snd) e depois inverte (reverse)
     in reverse (sortOn (\tupla -> snd tupla) contagem)
 
 -- 3. Itens mais emprestados
 itens_mais_emprestados :: BancoDeDados -> [(String, Int)]
 itens_mais_emprestados banco =
     -- Filtra so as operacoes que foram "Emprestimo"
-    let logsEmp = filter (\log -> contem_substring "Emprestimo:" (descricao_op log)) (historico_operacoes banco)
+    let logsEmp = filter (\operacao -> contem_substring "Emprestimo:" (descricao_op operacao)) (historico_operacoes banco)
         -- Pega a descricao (que contem o ID do item)
         descricoes = map descricao_op logsEmp
         contagem = map (\grupo -> (head grupo, length grupo)) (group (sort descricoes))
         
-    -- CORRIGIDO: Ordena crescente pelo segundo elemento (snd) e depois inverte (reverse)
+    -- Ordena crescente pelo segundo elemento (snd) e depois inverte (reverse)
     in reverse (sortOn (\tupla -> snd tupla) contagem)
 
 -- 4. Frequência de empréstimos por período (Exigencia do foldl)
 frequencia_periodo :: String -> BancoDeDados -> Int
 frequencia_periodo periodo banco =
-    foldl (\acc log -> se_foi_emprestimo_no_periodo log periodo acc) 0 (historico_operacoes banco)
+    foldl (\acc operacao -> se_foi_emprestimo_no_periodo operacao periodo acc) 0 (historico_operacoes banco)
   where
-    se_foi_emprestimo_no_periodo log per acc =
-        if contem_substring "Emprestimo:" (descricao_op log) && contem_substring per (data_hora_op log)
+    se_foi_emprestimo_no_periodo operacao per acc =
+        if contem_substring "Emprestimo:" (descricao_op operacao) && contem_substring per (data_hora_op operacao)
         then acc + 1
         else acc
 
@@ -60,7 +60,7 @@ itens_com_espera banco =
 -- 6. Relatório de operações (Retorna a lista de logs completa que bate com a busca)
 relatorio_operacoes :: String -> BancoDeDados -> [LogOperacao]
 relatorio_operacoes termo banco =
-    filter (\log -> contem_substring termo (usuario_envolvido log) || contem_substring termo (descricao_op log)) (historico_operacoes banco)
+    filter (\operacao -> contem_substring termo (usuario_envolvido operacao) || contem_substring termo (descricao_op operacao)) (historico_operacoes banco)
 
 -- ==========================================================
 -- FUNÇÕES AUXILIARES (Lógica e Recursão)
@@ -76,6 +76,7 @@ eh_prefixo (x:xs) (y:ys)
 contem_substring :: String -> String -> Bool
 contem_substring [] _ = True
 contem_substring _ [] = False
-contem_substring sub texto@(t:ts)
-    | eh_prefixo sub texto = True
-    | otherwise            = contem_substring sub ts
+-- CORRIGIDO: Removido o "As-pattern" (@) para uma sintaxe mais basica
+contem_substring sub (t:ts)
+    | eh_prefixo sub (t:ts) = True
+    | otherwise             = contem_substring sub ts

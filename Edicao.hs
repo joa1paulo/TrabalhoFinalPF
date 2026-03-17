@@ -105,10 +105,12 @@ busca_binaria_user alvo users inicio fim
 
 buscar_item_para_edicao :: Int -> BancoDeDados -> [Item]
 buscar_item_para_edicao id_alvo banco =
-    let itens_ordenados = sortOn id_item (lista_itens banco)
+    -- CORRIGIDO: Lambda explicita em vez de point-free (sortOn id_item)
+    let itens_ordenados = sortOn (\item -> id_item item) (lista_itens banco)
     in busca_binaria_item id_alvo itens_ordenados 0 (length itens_ordenados - 1)
 
 buscar_user_para_edicao :: Int -> BancoDeDados -> [Usuario]
 buscar_user_para_edicao mat_alvo banco =
-    let users_ordenados = sortOn matricula_user (lista_usuarios banco)
+    --  (sortOn matricula_user)
+    let users_ordenados = sortOn (\usuario -> matricula_user usuario) (lista_usuarios banco)
     in busca_binaria_user mat_alvo users_ordenados 0 (length users_ordenados - 1)
