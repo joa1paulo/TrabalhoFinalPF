@@ -11,7 +11,7 @@ import Estruturas
 import ImportacaoExportacao
 import Relatorios
 import System.Directory (doesFileExist)
-import System.IO (hFlush, stdout)
+import System.IO (stdout)
 import Text.Read (readMaybe)
 
 -- ==========================================================
@@ -32,11 +32,10 @@ pegar_tempo_atual = do
     agora <- getCurrentTime
     return (formatTime defaultTimeLocale "[%Y-%m-%d %H:%M]" agora)
 
--- Funcao auxiliar pra fazer o papel do printf + scanf limpando o buffer
+-- Funcao auxiliar pra printar e ler na mesma linha
 ler_string :: String -> IO String
 ler_string texto = do
     putStr texto
-    hFlush stdout
     getLine
 
 -- ==========================================================

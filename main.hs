@@ -11,9 +11,12 @@ module Main where
 
 import Menus (menu_principal)
 import Arquivos (carregar_banco)
+import System.IO (hSetBuffering, stdout, BufferMode(NoBuffering))
 
 main :: IO ()
 main = do
+    
+    hSetBuffering stdout NoBuffering
     putStrLn "Iniciando o Sistema de Gerenciamento de Midias..."
     
     -- Le o arquivo biblioteca.txt ou cria um banco vazio se nao existir
