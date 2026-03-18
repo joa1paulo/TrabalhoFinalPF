@@ -4,10 +4,10 @@ import Estruturas
 import Data.List (sort, group, sortOn)
 
 -- ==========================================================
--- ESTATÍSTICAS UTILIZANDO MAP, FILTER E FOLDL
+-- ESTATISTICAS UTILIZANDO MAP, FILTER E FOLDL (exigencia do PDF)
 -- ==========================================================
 
--- 1. Empréstimos ativos (por categoria)
+-- 1. Emprestimos ativos por categoria
 ativos_por_categoria :: TipoMidia -> BancoDeDados -> [Item]
 ativos_por_categoria cat banco =
     filter (\item -> tipo item == cat && not (ta_disponivel item)) (lista_itens banco)
@@ -15,40 +15,40 @@ ativos_por_categoria cat banco =
 -- 2. Usuarios mais ativos (Ranking Geral)
 usuarios_mais_ativos :: BancoDeDados -> [(String, Int)]
 usuarios_mais_ativos banco =
-    let usuarios_mat = map usuario_envolvido (historico_operacoes banco)
-        -- Expressão lambda explícita em vez de seção de operador
+    let usuarios_mat  = map usuario_envolvido (historico_operacoes banco)
         usuarios_reais = filter (\mat -> mat /= "Sistema") usuarios_mat
-        
-        -- Magica: pega a string da matricula e busca o nome real na lista de usuarios!
-        pegar_nome m_str = 
+        pegar_nome m_str =
             let encontrados = filter (\usuario -> show (matricula_user usuario) == m_str) (lista_usuarios banco)
             in if null encontrados then "Matricula " ++ m_str else nome_user (head encontrados)
-            
-        nomes = map pegar_nome usuarios_reais
+        nomes    = map pegar_nome usuarios_reais
         contagem = map (\grupo -> (head grupo, length grupo)) (group (sort nomes))
-        
-    -- Ordena crescente pelo segundo elemento (snd) e depois inverte (reverse)
     in reverse (sortOn (\tupla -> snd tupla) contagem)
 
 -- 3. Itens mais emprestados
+-- CORRECAO: Removemos o acento da busca (buscamos "mpr" e "para matr") para evitar bugs no Windows
+-- CORRECAO 2: Extraimos apenas o Titulo do meio das aspas para agrupar corretamente no ranking!
 itens_mais_emprestados :: BancoDeDados -> [(String, Int)]
 itens_mais_emprestados banco =
-    -- Filtra so as operacoes que foram "Emprestimo"
-    let logsEmp = filter (\operacao -> contem_substring "Emprestimo:" (descricao_op operacao)) (historico_operacoes banco)
-        -- Pega a descricao (que contem o ID do item)
-        descricoes = map descricao_op logsEmp
-        contagem = map (\grupo -> (head grupo, length grupo)) (group (sort descricoes))
+    let logsEmp    = filter (\lg -> contem_substring "mpr" (descricao_op lg) && contem_substring "para matr" (descricao_op lg)) (historico_operacoes banco)
         
-    -- Ordena crescente pelo segundo elemento (snd) e depois inverte (reverse)
+        -- Funcao auxiliar que extrai o texto entre as primeiras aspas (o Titulo do item!)
+        pegar_titulo desc =
+            let (_, resto1) = break (== '\"') desc
+                (tit, _)    = break (== '\"') (if null resto1 then "" else tail resto1)
+            in tit
+            
+        titulos = map (\lg -> pegar_titulo (descricao_op lg)) logsEmp
+        contagem  = map (\grupo -> (head grupo, length grupo)) (group (sort titulos))
     in reverse (sortOn (\tupla -> snd tupla) contagem)
 
--- 4. Frequência de empréstimos por período (Exigencia do foldl)
+-- 4. Frequencia de emprestimos por periodo
+-- CORRECAO: Buscando sem acentos novamente
 frequencia_periodo :: String -> BancoDeDados -> Int
 frequencia_periodo periodo banco =
-    foldl (\acc operacao -> se_foi_emprestimo_no_periodo operacao periodo acc) 0 (historico_operacoes banco)
+    foldl (\acc lg -> contar_emprestimo_no_periodo lg periodo acc) 0 (historico_operacoes banco)
   where
-    se_foi_emprestimo_no_periodo operacao per acc =
-        if contem_substring "Emprestimo:" (descricao_op operacao) && contem_substring per (data_hora_op operacao)
+    contar_emprestimo_no_periodo lg per acc =
+        if contem_substring "mpr" (descricao_op lg) && contem_substring "para matr" (descricao_op lg) && contem_substring per (data_hora_op lg)
         then acc + 1
         else acc
 
@@ -57,26 +57,25 @@ itens_com_espera :: BancoDeDados -> [Item]
 itens_com_espera banco =
     filter (\item -> not (null (fila_espera item))) (lista_itens banco)
 
--- 6. Relatório de operações (Retorna a lista de logs completa que bate com a busca)
+-- 6. Relatorio de operacoes filtrado por termo
 relatorio_operacoes :: String -> BancoDeDados -> [LogOperacao]
 relatorio_operacoes termo banco =
-    filter (\operacao -> contem_substring termo (usuario_envolvido operacao) || contem_substring termo (descricao_op operacao)) (historico_operacoes banco)
+    filter (\lg -> contem_substring termo (usuario_envolvido lg) || contem_substring termo (descricao_op lg)) (historico_operacoes banco)
 
 -- ==========================================================
--- FUNÇÕES AUXILIARES (Lógica e Recursão)
+-- FUNCOES AUXILIARES RECURSIVAS
 -- ==========================================================
 
 eh_prefixo :: String -> String -> Bool
-eh_prefixo [] _ = True
-eh_prefixo _ [] = False
+eh_prefixo [] _          = True
+eh_prefixo _  []         = False
 eh_prefixo (x:xs) (y:ys)
     | x == y    = eh_prefixo xs ys
     | otherwise = False
 
 contem_substring :: String -> String -> Bool
-contem_substring [] _ = True
-contem_substring _ [] = False
--- CORRIGIDO: Removido o "As-pattern" (@) para uma sintaxe mais basica
+contem_substring []  _           = True
+contem_substring _   []          = False
 contem_substring sub (t:ts)
     | eh_prefixo sub (t:ts) = True
     | otherwise             = contem_substring sub ts

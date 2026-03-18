@@ -27,7 +27,8 @@ data Usuario = Usuario {
 data Emprestimo = Emprestimo {
     id_item_emp :: Int,
     mat_user_emp :: Int,
-    data_emp :: String 
+    data_emp :: String,
+    data_devolucao :: String 
 } deriving (Show, Read, Eq)
 
 ---------------------------------------------------------

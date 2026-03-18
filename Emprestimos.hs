@@ -14,13 +14,12 @@ ja_ta_na_fila mat_alvo (x:xs)
     | mat_alvo == x = True
     | otherwise     = ja_ta_na_fila mat_alvo xs
 
-fazer_emprestimo :: String -> Int -> Int -> BancoDeDados -> BancoDeDados
-fazer_emprestimo momento id_item_alvo mat_user banco =
+fazer_emprestimo :: String -> String -> Int -> Int -> BancoDeDados -> BancoDeDados
+fazer_emprestimo momento data_dev id_item_alvo mat_user banco =
     let user_busca = filter (\usuario -> matricula_user usuario == mat_user) (lista_usuarios banco)
         item_busca = filter (\item -> id_item item == id_item_alvo) (lista_itens banco)
     in if null user_busca || null item_busca
        then let 
-           -- LOGA O ERRO SE O USUARIO OU ITEM NAO EXISTIREM (Isso pega as fraudes do Lote)
            motivo = if null user_busca then "Usuário não encontrado" else "Item não encontrado"
            log_erro = LogOperacao momento ("Tentativa de empréstimo (ID: " ++ show id_item_alvo ++ ")") (show mat_user) Erro motivo
            novo_log = historico_operacoes banco ++ [log_erro]
@@ -30,7 +29,6 @@ fazer_emprestimo momento id_item_alvo mat_user banco =
            item_alvo = head item_busca
        in if not (ta_disponivel item_alvo)
           then let 
-              -- LOGA O ERRO SE JA ESTIVER EMPRESTADO
               log_erro = LogOperacao momento ("Tentativa de empréstimo (ID: " ++ show id_item_alvo ++ ")") (show mat_user) Erro "Item já está emprestado"
               novo_log = historico_operacoes banco ++ [log_erro]
           in banco { historico_operacoes = novo_log }
@@ -38,7 +36,8 @@ fazer_emprestimo momento id_item_alvo mat_user banco =
           else let
               titulo_item = titulo item_alvo
               tipo_item = tipo_str (tipo item_alvo)
-              novo_emp = Emprestimo id_item_alvo mat_user momento
+              -- ATUALIZADO com data_dev
+              novo_emp = Emprestimo id_item_alvo mat_user momento data_dev
               nova_lista_emp = lista_emprestimos banco ++ [novo_emp]
               nova_lista_itens = map (\item -> if id_item item == id_item_alvo then item { ta_disponivel = False } else item) (lista_itens banco)
               nova_lista_users = map (\usuario -> if matricula_user usuario == mat_user then usuario { meus_emprestimos = meus_emprestimos usuario ++ [id_item_alvo] } else usuario) (lista_usuarios banco)
@@ -91,8 +90,9 @@ renovar_emprestimo momento id_item_alvo mat_user nova_data banco =
        in banco { historico_operacoes = novo_log }
        else let
            item_alvo = head item_busca
+           -- CORRIGIDO: Agora ele atualiza a data_devolucao em vez da data_emp!
            nova_lista_emp = map (\emprestimo -> if id_item_emp emprestimo == id_item_alvo && mat_user_emp emprestimo == mat_user
-                                       then emprestimo { data_emp = nova_data } 
+                                       then emprestimo { data_devolucao = nova_data } 
                                        else emprestimo) (lista_emprestimos banco)
                                        
            desc = "Renovação: " ++ tipo_str (tipo item_alvo) ++ " \"" ++ titulo item_alvo ++ "\" para matrícula \"" ++ show mat_user ++ "\""
@@ -100,10 +100,11 @@ renovar_emprestimo momento id_item_alvo mat_user nova_data banco =
            novo_log = historico_operacoes banco ++ [log_op]
        in banco { lista_emprestimos = nova_lista_emp, historico_operacoes = novo_log }
 
--- (As funções de lote continuam iguais, elas já chamam as funções base protegidas)
-emprestimo_lote :: String -> [Int] -> Int -> BancoDeDados -> BancoDeDados
-emprestimo_lote momento ids mat_user banco =
-    foldl (\banco_acumulado id_alvo -> fazer_emprestimo momento id_alvo mat_user banco_acumulado) banco ids
+-- (As funções de lote)
+
+emprestimo_lote :: String -> String -> [Int] -> Int -> BancoDeDados -> BancoDeDados
+emprestimo_lote momento data_dev ids mat_user banco =
+    foldl (\banco_acumulado id_alvo -> fazer_emprestimo momento data_dev id_alvo mat_user banco_acumulado) banco ids
 
 devolucao_lote :: String -> [Int] -> Int -> BancoDeDados -> BancoDeDados
 devolucao_lote momento ids mat_user banco =
@@ -135,3 +136,7 @@ adicionar_fila_espera momento id_item_alvo mat_user banco =
               log_op = LogOperacao momento desc (show mat_user) Sucesso ""
               novo_log = historico_operacoes banco ++ [log_op]
           in banco { lista_itens = nova_lista_itens, historico_operacoes = novo_log }
+
+contar_atrasos :: Int -> String -> BancoDeDados -> Int
+contar_atrasos mat_user momento_atual banco =
+    length (filter (\emp -> mat_user_emp emp == mat_user && data_devolucao emp < momento_atual) (lista_emprestimos banco))

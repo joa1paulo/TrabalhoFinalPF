@@ -15,10 +15,9 @@ import System.IO (stdout)
 import Text.Read (readMaybe)
 
 -- ==========================================================
--- FUNCOES AUXILIARES DE INTERFACE (Contribuição do colega!)
+-- FUNCOES AUXILIARES DE INTERFACE 
 -- ==========================================================
 
--- Imprime os menus de forma modular e limpa
 exibir_opcoes :: String -> [String] -> IO ()
 exibir_opcoes titulo opcoes = do
     putStrLn "\n=============================="
@@ -26,17 +25,55 @@ exibir_opcoes titulo opcoes = do
     putStrLn "=============================="
     putStrLn (unlines opcoes)
 
--- Função para pegar tempo para log e historico
 pegar_tempo_atual :: IO String
 pegar_tempo_atual = do
     agora <- getCurrentTime
     return (formatTime defaultTimeLocale "[%Y-%m-%d %H:%M]" agora)
 
--- Funcao auxiliar pra printar e ler na mesma linha
 ler_string :: String -> IO String
 ler_string texto = do
     putStr texto
     getLine
+
+-- CONTRIBUIÇÃO GENIAL DO COLEGA: Protege contra crash se o usuario digitar letras em vez de numeros!
+ler_int :: String -> IO Int
+ler_int texto = do
+    entrada <- ler_string texto
+    case readMaybe entrada :: Maybe Int of
+        Just n  -> return n
+        Nothing -> do
+            putStrLn "Erro: digite apenas numeros inteiros."
+            ler_int texto
+
+-- Loop de validacao do colega usando nossa regra de negocio do Cadastros.hs
+ler_ano_valido :: IO Int
+ler_ano_valido = do
+    a <- ler_int "Informe o ano de publicacao (1900-2026): "
+    if validar_ano a
+        then return a
+        else do
+            putStrLn ("Erro: ano \"" ++ show a ++ "\" invalido. Informe um valor entre 1900 e 2026.")
+            ler_ano_valido
+
+-- Loop de validacao do colega usando nossa regra de negocio do Cadastros.hs
+ler_email_valido :: IO String
+ler_email_valido = do
+    email <- ler_string "Informe o e-mail: "
+    if validar_email email
+        then return email
+        else do
+            putStrLn ("Erro: e-mail \"" ++ email ++ "\" esta mal formatado. Use o formato usuario@dominio.com")
+            ler_email_valido
+
+-- Auxiliar: le a data com formato exato
+ler_data_valida :: String -> IO String
+ler_data_valida prompt = do
+    d <- ler_string prompt
+    if validar_data d
+        then return d
+        else do
+            putStrLn "Erro: Data mal formatada. Use o padrao exato [YYYY-MM-DD HH:MM] (incluindo colchetes)."
+            ler_data_valida prompt
 
 -- ==========================================================
 -- SUBMENUS
@@ -55,46 +92,36 @@ submenu_itens banco = do
     
     case opcao of
         "1" -> do
-            id_str <- ler_string "Informe o codigo unico do item (numeros): "
-            titulo_str <- ler_string "Informe o titulo: "
-            autor_str <- ler_string "Informe o autor/diretor/criador: "
-            ano_str <- ler_string "Informe o ano de publicacao (numeros): "
-            
-            exibir_opcoes "Qual o tipo de midia?" ["1 - Livro | 2 - Filme | 3 - Jogo"]
-            tipo_str <- ler_string "Opcao de tipo: "
-            
-            let tipo_escolhido = case tipo_str of
-                                    "2" -> Filme
-                                    "3" -> Jogo
-                                    _   -> Livro
-            
-            let id_int = read id_str :: Int
+            -- Usando o ler_int do colega!
+            id_int <- ler_int "Informe o codigo unico do item (numeros): "
             
             if any (\item -> id_item item == id_int) (lista_itens banco) then do
                 putStrLn ("Erro: codigo \"" ++ show id_int ++ "\" ja cadastrado.")
                 submenu_itens banco
             else do
-                let ano_int = read ano_str :: Int
-                if not (validar_ano ano_int) then do
-                    let nome_cat = if tipo_escolhido == Livro then "livros" else if tipo_escolhido == Filme then "filmes" else "jogos"
-                    let msg_erro = "Erro: ano \"" ++ show ano_int ++ "\" inválido para " ++ nome_cat ++ "."
-                    putStrLn msg_erro
-                    
-                    momento <- pegar_tempo_atual
-                    let log_erro = LogOperacao momento ("Tentativa de cadastro de item (ID: " ++ show id_int ++ ")") "Sistema" Erro msg_erro
-                    submenu_itens (banco { historico_operacoes = historico_operacoes banco ++ [log_erro] })
-                else do
-                    let novo_item = Item id_int titulo_str autor_str ano_int tipo_escolhido True []
-                    
-                    momento <- pegar_tempo_atual 
-                    let banco_novo = cadastrar_item momento novo_item banco
-                    putStrLn "Sucesso! Item cadastrado."
-                    submenu_itens banco_novo
+                titulo_str <- ler_string "Informe o titulo: "
+                autor_str <- ler_string "Informe o autor/diretor/criador: "
+                
+                -- Usando o loop do colega
+                ano_int <- ler_ano_valido
+                
+                exibir_opcoes "Qual o tipo de midia?" ["1 - Livro | 2 - Filme | 3 - Jogo"]
+                tipo_str <- ler_string "Opcao de tipo: "
+                
+                let tipo_escolhido = case tipo_str of
+                                        "2" -> Filme
+                                        "3" -> Jogo
+                                        _   -> Livro
+                
+                let novo_item = Item id_int titulo_str autor_str ano_int tipo_escolhido True []
+                
+                momento <- pegar_tempo_atual 
+                let banco_novo = cadastrar_item momento novo_item banco
+                putStrLn "Sucesso! Item cadastrado."
+                submenu_itens banco_novo
             
         "2" -> do
-            id_str <- ler_string "Informe o ID do item para remover: "
-            let id_int = read id_str :: Int
-            
+            id_int <- ler_int "Informe o ID do item para remover: "
             momento <- pegar_tempo_atual 
             
             let banco_novo = remover_item momento id_int banco
@@ -126,39 +153,23 @@ submenu_usuarios banco = do
     
     case opcao of
         "1" -> do
-            mat_str <- ler_string "Informe a matricula (apenas numeros): "
-            case readMaybe mat_str :: Maybe Int of
-                Nothing -> do
-                    putStrLn "Erro: A matricula deve conter APENAS numeros inteiros."
-                    submenu_usuarios banco
-                Just mat_int -> do
-                    if any (\usuario -> matricula_user usuario == mat_int) (lista_usuarios banco) then do
-                        putStrLn ("Erro: matricula \"" ++ show mat_int ++ "\" ja cadastrada.")
-                        submenu_usuarios banco
-                    else do
-                        nome_str <- ler_string "Informe o nome: "
-                        email_str <- ler_string "Informe o e-mail: "
-                        
-                        -- NOVO ESCUDO DE E-MAIL AQUI!
-                        if not (validar_email email_str) then do
-                            let msg_erro = "Erro: e-mail \"" ++ email_str ++ "\" está mal formatado."
-                            putStrLn msg_erro
-                            
-                            momento <- pegar_tempo_atual
-                            let log_erro = LogOperacao momento ("Tentativa de cadastro de usuário (Mat: " ++ show mat_int ++ ")") "Sistema" Erro msg_erro
-                            submenu_usuarios (banco { historico_operacoes = historico_operacoes banco ++ [log_erro] })
-                        else do
-                            let novo_user = Usuario mat_int nome_str email_str []
-                            
-                            momento <- pegar_tempo_atual
-                            let banco_novo = cadastrar_usuario momento novo_user banco
-                            
-                            putStrLn "Sucesso! Usuario cadastrado."
-                            submenu_usuarios banco_novo
+            mat_int <- ler_int "Informe a matricula (apenas numeros): "
+            if any (\usuario -> matricula_user usuario == mat_int) (lista_usuarios banco) then do
+                putStrLn ("Erro: matricula \"" ++ show mat_int ++ "\" ja cadastrada.")
+                submenu_usuarios banco
+            else do
+                nome_str <- ler_string "Informe o nome: "
+                email_str <- ler_email_valido
+                
+                let novo_user = Usuario mat_int nome_str email_str []
+                momento <- pegar_tempo_atual
+                let banco_novo = cadastrar_usuario momento novo_user banco
+                
+                putStrLn "Sucesso! Usuario cadastrado."
+                submenu_usuarios banco_novo
                     
         "2" -> do
-            mat_str <- ler_string "Informe a matricula para remover: "
-            let mat_int = read mat_str :: Int
+            mat_int <- ler_int "Informe a matricula para remover: "
             momento <- pegar_tempo_atual
             let banco_novo = remover_usuario momento mat_int banco
             putStrLn "Sucesso! Usuario removido (se existia)."
@@ -191,11 +202,8 @@ submenu_emprestimos banco = do
     
     case opcao of
         "1" -> do
-            id_str <- ler_string "Informe o ID do item: "
-            mat_str <- ler_string "Informe a matricula do usuario: "
-            
-            let id_int = read id_str :: Int
-            let mat_int = read mat_str :: Int
+            id_int <- ler_int "Informe o ID do item: "
+            mat_int <- ler_int "Informe a matricula do usuario: "
             
             let user_busca = filter (\usuario -> matricula_user usuario == mat_int) (lista_usuarios banco)
             if null user_busca then do
@@ -204,38 +212,46 @@ submenu_emprestimos banco = do
                 let log_erro = LogOperacao momento ("Tentativa de empréstimo (ID: " ++ show id_int ++ ")") (show mat_int) Erro "Usuário inexistente"
                 submenu_emprestimos (banco { historico_operacoes = historico_operacoes banco ++ [log_erro] })
             else do
-                let item_busca = filter (\item -> id_item item == id_int) (lista_itens banco)
-                if null item_busca then do
-                    putStrLn "Erro: Item nao encontrado no sistema."
-                    momento <- pegar_tempo_atual
-                    let log_erro = LogOperacao momento ("Tentativa de empréstimo (ID: " ++ show id_int ++ ")") (show mat_int) Erro "Item inexistente"
-                    submenu_emprestimos (banco { historico_operacoes = historico_operacoes banco ++ [log_erro] })
+                -- NOSSO ESCUDO DE ATRASOS (Com data de devolucao real)
+                momento_atual <- pegar_tempo_atual
+                let atrasos = contar_atrasos mat_int momento_atual banco
+                
+                if atrasos > 0 then do
+                    putStrLn ("\nAtenção: Você possui " ++ show atrasos ++ " empréstimos atrasados.")
+                    putStrLn "Regularize sua situação para novos empréstimos."
+                    submenu_emprestimos banco
                 else do
-                    let item_alvo = head item_busca
-                    if not (ta_disponivel item_alvo) then do
-                        putStrLn ("\nAviso: O " ++ show (tipo item_alvo) ++ " \"" ++ titulo item_alvo ++ "\" ja esta emprestado.")
-                        escolha <- ler_string "Deseja entrar na lista de espera? (S/N): "
-                        
-                        if escolha == "S" || escolha == "s" then do
-                            momento <- pegar_tempo_atual
-                            let banco_novo = adicionar_fila_espera momento id_int mat_int banco
-                            putStrLn "Sucesso! Voce foi adicionado a fila de espera."
-                            submenu_emprestimos banco_novo
-                        else do
-                            putStrLn "Operacao cancelada."
-                            submenu_emprestimos banco
-                    else do
+                    let item_busca = filter (\item -> id_item item == id_int) (lista_itens banco)
+                    if null item_busca then do
+                        putStrLn "Erro: Item nao encontrado no sistema."
                         momento <- pegar_tempo_atual
-                        let banco_novo = fazer_emprestimo momento id_int mat_int banco
-                        putStrLn "Sucesso! Emprestimo registrado."
-                        submenu_emprestimos banco_novo
+                        let log_erro = LogOperacao momento ("Tentativa de empréstimo (ID: " ++ show id_int ++ ")") (show mat_int) Erro "Item inexistente"
+                        submenu_emprestimos (banco { historico_operacoes = historico_operacoes banco ++ [log_erro] })
+                    else do
+                        let item_alvo = head item_busca
+                        if not (ta_disponivel item_alvo) then do
+                            putStrLn ("\nAviso: O " ++ show (tipo item_alvo) ++ " \"" ++ titulo item_alvo ++ "\" ja esta emprestado.")
+                            escolha <- ler_string "Deseja entrar na lista de espera? (S/N): "
+                            
+                            if escolha == "S" || escolha == "s" then do
+                                momento <- pegar_tempo_atual
+                                let banco_novo = adicionar_fila_espera momento id_int mat_int banco
+                                putStrLn "Sucesso! Voce foi adicionado a fila de espera."
+                                submenu_emprestimos banco_novo
+                            else do
+                                putStrLn "Operacao cancelada."
+                                submenu_emprestimos banco
+                        else do
+                            -- AQUI PEDE O PRAZO QUE O COLEGA ESQUECEU!
+                            data_dev <- ler_data_valida "Informe o prazo de devolucao (ex: [2026-03-24 10:00]): "
+                            momento <- pegar_tempo_atual
+                            let banco_novo = fazer_emprestimo momento data_dev id_int mat_int banco
+                            putStrLn "Sucesso! Emprestimo registrado."
+                            submenu_emprestimos banco_novo
             
         "2" -> do
-            id_str <- ler_string "Informe o ID do item devolvido: "
-            mat_str <- ler_string "Informe a matricula do usuario: "
-            
-            let id_int = read id_str :: Int
-            let mat_int = read mat_str :: Int
+            id_int <- ler_int "Informe o ID do item devolvido: "
+            mat_int <- ler_int "Informe a matricula do usuario: "
             
             let user_busca = filter (\usuario -> matricula_user usuario == mat_int) (lista_usuarios banco)
             if null user_busca then do
@@ -267,17 +283,14 @@ submenu_emprestimos banco = do
                     let nome_item = if null item_b then show (id_item_emp emprestimo) else titulo (head item_b)
                     let nome_pessoa = if null user_b then show (mat_user_emp emprestimo) else nome_user (head user_b)
                     
-                    putStrLn ("ID Item: " ++ show (id_item_emp emprestimo) ++ " | Titulo: \"" ++ nome_item ++ "\" | Mat: " ++ show (mat_user_emp emprestimo) ++ " | Usuario: " ++ nome_pessoa ++ " | Data: " ++ data_emp emprestimo)
+                    putStrLn ("ID Item: " ++ show (id_item_emp emprestimo) ++ " | Titulo: \"" ++ nome_item ++ "\" | Mat: " ++ show (mat_user_emp emprestimo) ++ " | Usuario: " ++ nome_pessoa ++ " | Prazo: " ++ data_devolucao emprestimo)
                 ) (lista_emprestimos banco)
             submenu_emprestimos banco
             
         "4" -> do
-            id_str <- ler_string "Informe o ID do item para renovar: "
-            mat_str <- ler_string "Informe a matricula do usuario: "
-            nova_data <- ler_string "Informe a NOVA data de devolucao: "
-            
-            let id_int = read id_str :: Int
-            let mat_int = read mat_str :: Int
+            id_int <- ler_int "Informe o ID do item para renovar: "
+            mat_int <- ler_int "Informe a matricula do usuario: "
+            nova_data <- ler_data_valida "Informe a NOVA data de devolucao (ex: [2026-03-24 10:00]): "
             
             let user_busca = filter (\usuario -> matricula_user usuario == mat_int) (lista_usuarios banco)
             if null user_busca then do
@@ -297,8 +310,7 @@ submenu_emprestimos banco = do
             putStrLn "2 - Devolucoes em lote"
             op_lote <- ler_string "Opcao do lote: "
             
-            mat_str <- ler_string "Informe a matricula do usuario: "
-            let mat_int = read mat_str :: Int
+            mat_int <- ler_int "Informe a matricula do usuario: "
             
             let user_busca = filter (\usuario -> matricula_user usuario == mat_int) (lista_usuarios banco)
             if null user_busca then do
@@ -307,23 +319,31 @@ submenu_emprestimos banco = do
                 let log_erro = LogOperacao momento "Tentativa de lote" (show mat_int) Erro "Usuário inexistente"
                 submenu_emprestimos (banco { historico_operacoes = historico_operacoes banco ++ [log_erro] })
             else do
-                ids_str <- ler_string "Informe os IDs dos itens separados por espaco (ex: 101 102 103): "
-                let ids_ints = map read (words ids_str) :: [Int]
+                momento_atual <- pegar_tempo_atual
+                let atrasos = contar_atrasos mat_int momento_atual banco
                 
-                momento <- pegar_tempo_atual
-                
-                case op_lote of
-                    "1" -> do
-                        let banco_novo = emprestimo_lote momento ids_ints mat_int banco
-                        putStrLn "Emprestimos em lote efetuados (IDs invalidos geraram log de Erro na auditoria)."
-                        submenu_emprestimos banco_novo
-                    "2" -> do
-                        let banco_novo = devolucao_lote momento ids_ints mat_int banco
-                        putStrLn "Devolucoes em lote processadas (IDs invalidos geraram log de Erro na auditoria)."
-                        submenu_emprestimos banco_novo
-                    _ -> do
-                        putStrLn "Opcao invalida."
-                        submenu_emprestimos banco
+                if op_lote == "1" && atrasos > 0 then do
+                    putStrLn ("\nAtenção: Você possui " ++ show atrasos ++ " empréstimos atrasados.")
+                    putStrLn "Regularize sua situação para novos empréstimos."
+                    submenu_emprestimos banco
+                else do
+                    ids_str <- ler_string "Informe os IDs dos itens separados por espaco (ex: 101 102 103): "
+                    let ids_ints = map read (words ids_str) :: [Int]
+                    momento <- pegar_tempo_atual
+                    
+                    case op_lote of
+                        "1" -> do
+                            data_dev <- ler_data_valida "Informe o prazo limite para os itens (ex: [2026-03-24 10:00]): "
+                            let banco_novo = emprestimo_lote momento data_dev ids_ints mat_int banco
+                            putStrLn "Emprestimos em lote efetuados (IDs invalidos geraram log de Erro na auditoria)."
+                            submenu_emprestimos banco_novo
+                        "2" -> do
+                            let banco_novo = devolucao_lote momento ids_ints mat_int banco
+                            putStrLn "Devolucoes em lote processadas (IDs invalidos geraram log de Erro na auditoria)."
+                            submenu_emprestimos banco_novo
+                        _ -> do
+                            putStrLn "Opcao invalida."
+                            submenu_emprestimos banco
             
         "6" -> do
             menu_principal banco
@@ -488,8 +508,7 @@ submenu_edicao banco = do
     
     case opcao of
         "1" -> do
-            id_str <- ler_string "Informe o codigo do item: "
-            let id_int = read id_str :: Int
+            id_int <- ler_int "Informe o codigo do item: "
             
             let item_encontrado = buscar_item_para_edicao id_int banco
             
@@ -529,32 +548,19 @@ submenu_edicao banco = do
                             else do putStrLn "Edicao cancelada."; submenu_edicao banco
                             
                         "3" -> do
-                            novo_val <- ler_string "Informe novo ano: "
-                            let ano_int = read novo_val :: Int
-                            
-                            if not (validar_ano ano_int) then do
-                                let nome_cat = if tipo item == Livro then "livros" else if tipo item == Filme then "filmes" else "jogos"
-                                let msg_erro = "Erro: ano \"" ++ show ano_int ++ "\" inválido para " ++ nome_cat ++ "."
-                                putStrLn msg_erro
+                            ano_int <- ler_ano_valido
+                            confirma <- ler_string "Confirma edicao? (S/N): "
+                            if confirma == "S" || confirma == "s" then do
                                 momento <- pegar_tempo_atual
-                                let log_erro = LogOperacao momento ("Tentativa de edição de ano (ID: " ++ show id_int ++ ")") "Sistema" Erro msg_erro
-                                submenu_edicao (banco { historico_operacoes = historico_operacoes banco ++ [log_erro] })
-                            else do
-                                confirma <- ler_string "Confirma edicao? (S/N): "
-                                if confirma == "S" || confirma == "s" then do
-                                    momento <- pegar_tempo_atual
-                                    let banco_novo = editar_ano_item momento id_int ano_int banco
-                                    putStrLn "Sucesso! Ano alterado."
-                                    submenu_edicao banco_novo
-                                else do 
-                                    putStrLn "Edicao cancelada."
-                                    submenu_edicao banco
+                                let banco_novo = editar_ano_item momento id_int ano_int banco
+                                putStrLn "Sucesso! Ano alterado."
+                                submenu_edicao banco_novo
+                            else do putStrLn "Edicao cancelada."; submenu_edicao banco
                             
                         _ -> do putStrLn "Opcao invalida!"; submenu_edicao banco
 
         "2" -> do
-            mat_str <- ler_string "Informe a matricula: "
-            let mat_int = read mat_str :: Int
+            mat_int <- ler_int "Informe a matricula: "
             
             let user_encontrado = buscar_user_para_edicao mat_int banco
             
@@ -583,26 +589,17 @@ submenu_edicao banco = do
                             else do putStrLn "Edicao cancelada."; submenu_edicao banco
                             
                         "2" -> do
-                            novo_val <- ler_string "Informe novo e-mail: "
-                            
-                            if not (validar_email novo_val) then do
-                                let msg_erro = "Erro: e-mail \"" ++ novo_val ++ "\" está mal formatado."
-                                putStrLn msg_erro
+                            novo_val <- ler_email_valido
+                            confirma <- ler_string "Confirma edicao? (S/N): "
+                            if confirma == "S" || confirma == "s" then do
                                 momento <- pegar_tempo_atual
-                                let log_erro = LogOperacao momento ("Tentativa de edição de e-mail (Mat: " ++ show mat_int ++ ")") "Sistema" Erro msg_erro
-                                submenu_edicao (banco { historico_operacoes = historico_operacoes banco ++ [log_erro] })
-                            else do
-                                confirma <- ler_string "Confirma edicao? (S/N): "
-                                if confirma == "S" || confirma == "s" then do
-                                    momento <- pegar_tempo_atual
-                                    let banco_novo = editar_email_usuario momento mat_int novo_val banco
-                                    putStrLn "Sucesso! E-mail atualizado."
-                                    submenu_edicao banco_novo
-                                else do 
-                                    putStrLn "Edicao cancelada."
-                                    submenu_edicao banco
-                                    
+                                let banco_novo = editar_email_usuario momento mat_int novo_val banco
+                                putStrLn "Sucesso! E-mail atualizado."
+                                submenu_edicao banco_novo
+                            else do putStrLn "Edicao cancelada."; submenu_edicao banco
+                            
                         _ -> do putStrLn "Opcao invalida!"; submenu_edicao banco
+
         "3" -> menu_principal banco
         
         _ -> do

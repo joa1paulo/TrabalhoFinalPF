@@ -103,3 +103,14 @@ validar_email email =
        then False -- Não tem '@'
        else let depois = tail depois_com_arroba -- Tira o '@'
             in (length antes > 0) && contem_ponto_com depois
+
+-- O formato deve ser estritamente [YYYY-MM-DD HH:MM] (18 caracteres)
+validar_data :: String -> Bool
+validar_data d =
+    length d == 18 &&
+    (d !! 0 == '[') &&
+    (d !! 5 == '-') &&
+    (d !! 8 == '-') &&
+    (d !! 11 == ' ') &&
+    (d !! 14 == ':') &&
+    (d !! 17 == ']')

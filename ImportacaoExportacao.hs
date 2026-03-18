@@ -61,7 +61,8 @@ empParaCSV :: Emprestimo -> String
 empParaCSV emprestimo = meuIntercalate ";" [
     colocar_aspas (show (id_item_emp emprestimo)),
     colocar_aspas (show (mat_user_emp emprestimo)),
-    colocar_aspas (data_emp emprestimo)
+    colocar_aspas (data_emp emprestimo),
+    colocar_aspas (data_devolucao emprestimo)
     ]
 
 -- ==========================================================
@@ -102,9 +103,9 @@ montar_usuario_da_linha linha =
 montar_emprestimo_da_linha :: String -> Maybe Emprestimo
 montar_emprestimo_da_linha linha =
     let partes = meuSplitOn ';' (remover_aspas linha)
-    in if length partes == 3
+    in if length partes == 4
        then case (readMaybe (partes !! 0) :: Maybe Int, readMaybe (partes !! 1) :: Maybe Int) of
-                (Just id_int, Just mat_int) -> Just (Emprestimo id_int mat_int (partes !! 2))
+                (Just id_int, Just mat_int) -> Just (Emprestimo id_int mat_int (partes !! 2) (partes !! 3))
                 _ -> Nothing
        else Nothing
 
