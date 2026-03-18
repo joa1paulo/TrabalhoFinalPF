@@ -1,6 +1,6 @@
 module ImportacaoExportacao where
 
-import Cadastros (validar_ano, validar_email)
+import Cadastros (validar_ano, validar_email, validar_data)
 import Estruturas
 import Text.Read (readMaybe)
 
@@ -8,9 +8,9 @@ import Text.Read (readMaybe)
 
 -- função aux pra substituir o Intercalate que vem de uma biblioteca externa.
 meuIntercalate :: String -> [String] -> String
-meuIntercalate _ [] = ""  -- caso base: lista vazia retorna string vazia
-meuIntercalate _ [x] = x  -- caso base: lista com um elemento retorna o elemento
-meuIntercalate sep (x:xs) = x ++ sep ++ meuIntercalate sep xs  -- recursão
+meuIntercalate _ [] = ""  
+meuIntercalate _ [x] = x  
+meuIntercalate sep (x:xs) = x ++ sep ++ meuIntercalate sep xs  
 
 -- função aux pra substituir o SplitOn que vem de uma biblioteca externa.
 meuSplitOn :: Char -> String -> [String]
@@ -79,7 +79,7 @@ montar_item_da_linha linha =
     in if length partes == 5
        then case (readMaybe (partes !! 3) :: Maybe Int, readMaybe (partes !! 4) :: Maybe Int) of
                 (Just ano_int, Just id_int) -> 
-                    if validar_ano ano_int --  ANOS NONSENSE PELO CSV
+                    if validar_ano ano_int 
                     then Just (Item id_int (partes !! 1) (partes !! 2) ano_int (tipo_de_str (partes !! 0)) True [])
                     else Nothing
                 _ -> Nothing
@@ -92,7 +92,7 @@ montar_usuario_da_linha linha =
        then case readMaybe (partes !! 2) :: Maybe Int of
                 Just mat_int -> 
                     let email_csv = partes !! 1
-                    in if validar_email email_csv -- EMAILS INVALIDOS DO CSV
+                    in if validar_email email_csv 
                        then Just (Usuario mat_int (partes !! 0) email_csv [])
                        else Nothing
                 _ -> Nothing
@@ -103,11 +103,17 @@ montar_emprestimo_da_linha linha =
     let partes = meuSplitOn ';' (remover_aspas linha)
     in if length partes == 4
        then case (readMaybe (partes !! 0) :: Maybe Int, readMaybe (partes !! 1) :: Maybe Int) of
-                (Just id_int, Just mat_int) -> Just (Emprestimo id_int mat_int (partes !! 2) (partes !! 3))
+                (Just id_int, Just mat_int) -> 
+                    let data_emp_csv = partes !! 2
+                        data_dev_csv = partes !! 3
+                    
+                    in if validar_data data_emp_csv && validar_data data_dev_csv
+                       then Just (Emprestimo id_int mat_int data_emp_csv data_dev_csv)
+                       else Nothing
                 _ -> Nothing
        else Nothing
 
---  limpar os erros (Nothing) da lista
+--  tirar os Nothing da lista
 pegar_apenas_validos :: [Maybe a] -> [a]
 pegar_apenas_validos [] = []
 pegar_apenas_validos (Just x : xs) = x : pegar_apenas_validos xs

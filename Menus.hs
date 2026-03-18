@@ -482,7 +482,7 @@ submenu_relatorios banco = do
             submenu_relatorios banco
             
         "6" -> do
-            termo <- ler_string "Informe a matricula do usuario ou operacao (ex: 2025111 ou Emprestimo): "
+            termo <- ler_string "Informe a matricula do usuario ou operacao (ex: 2025111 ou livro ou Emprestimo): "
             putStrLn ("\n--- Relatorio de Operacoes para '" ++ termo ++ "' ---")
             let relatorio = relatorio_operacoes termo banco
             if null relatorio
@@ -653,16 +653,23 @@ submenu_exportacao banco = do
                 conteudo <- readFile arquivo
                 let linhas = lines conteudo
                 
+                -- pegar tempo pro log
+                momento_importacao <- pegar_tempo_atual
+                
                 case op_imp of
                     "1" -> do
                         let itens_lidos = pegar_apenas_validos (map montar_item_da_linha linhas)
                         let erros_formato = length linhas - length itens_lidos
                         
-                        let (lista_final, duplicatas) = foldl (\(lista_acumulada, qtd_ignorados) novo -> 
-                                if any (\existente -> id_item existente == id_item novo) lista_acumulada
-                                then (lista_acumulada, qtd_ignorados + 1)
-                                else (lista_acumulada ++ [novo], qtd_ignorados)
-                              ) (lista_itens banco, 0) itens_lidos
+                        --  Salva o item com log de cadastro
+                        let (lista_final, duplicatas, novos_logs) = foldl (\(acc_itens, qtd_ign, acc_logs) novo -> 
+                                if any (\existente -> id_item existente == id_item novo) acc_itens
+                                then (acc_itens, qtd_ign + 1, acc_logs)
+                                else 
+                                    let tipo_str = if tipo novo == Livro then "livro" else if tipo novo == Filme then "filme" else "jogo"
+                                        log_cadastro = LogOperacao momento_importacao ("Cadastro item: " ++ tipo_str ++ " \"" ++ titulo novo ++ "\"") "Sistema" Sucesso ""
+                                    in (acc_itens ++ [novo], qtd_ign, acc_logs ++ [log_cadastro])
+                              ) (lista_itens banco, 0, []) itens_lidos
                         
                         let total_ignorados = erros_formato + duplicatas
                         let inseridos = length itens_lidos - duplicatas
@@ -670,17 +677,20 @@ submenu_exportacao banco = do
                         putStrLn ("Importacao concluida: " ++ show inseridos ++ " itens importados com sucesso.")
                         if total_ignorados > 0 then putStrLn ("Aviso: " ++ show total_ignorados ++ " linhas ignoradas (erro de formato ou ID repetido).") else return ()
                         
-                        submenu_exportacao (banco { lista_itens = lista_final })
+                        submenu_exportacao (banco { lista_itens = lista_final, historico_operacoes = historico_operacoes banco ++ novos_logs })
                         
                     "2" -> do
                         let usuarios_lidos = pegar_apenas_validos (map montar_usuario_da_linha linhas)
                         let erros_formato = length linhas - length usuarios_lidos
                         
-                        let (lista_final, duplicatas) = foldl (\(lista_acumulada, qtd_ignorados) novo -> 
-                                if any (\existente -> matricula_user existente == matricula_user novo) lista_acumulada
-                                then (lista_acumulada, qtd_ignorados + 1)
-                                else (lista_acumulada ++ [novo], qtd_ignorados)
-                              ) (lista_usuarios banco, 0) usuarios_lidos
+                        --  Salva usuario e cria log de cadastro
+                        let (lista_final, duplicatas, novos_logs) = foldl (\(acc_users, qtd_ign, acc_logs) novo -> 
+                                if any (\existente -> matricula_user existente == matricula_user novo) acc_users
+                                then (acc_users, qtd_ign + 1, acc_logs)
+                                else 
+                                    let log_cadastro = LogOperacao momento_importacao ("Cadastro usuário: \"" ++ nome_user novo ++ "\"") "Sistema" Sucesso ""
+                                    in (acc_users ++ [novo], qtd_ign, acc_logs ++ [log_cadastro])
+                              ) (lista_usuarios banco, 0, []) usuarios_lidos
                         
                         let total_ignorados = erros_formato + duplicatas
                         let inseridos = length usuarios_lidos - duplicatas
@@ -688,16 +698,45 @@ submenu_exportacao banco = do
                         putStrLn ("Importacao concluida: " ++ show inseridos ++ " usuarios importados com sucesso.")
                         if total_ignorados > 0 then putStrLn ("Aviso: " ++ show total_ignorados ++ " linhas ignoradas (erro de formato ou matricula repetida).") else return ()
                         
-                        submenu_exportacao (banco { lista_usuarios = lista_final })
+                        submenu_exportacao (banco { lista_usuarios = lista_final, historico_operacoes = historico_operacoes banco ++ novos_logs })
                         
                     "3" -> do
                         let emprestimos_lidos = pegar_apenas_validos (map montar_emprestimo_da_linha linhas)
                         let erros_formato = length linhas - length emprestimos_lidos
                         
-                        putStrLn ("Importacao concluida: " ++ show (length emprestimos_lidos) ++ " emprestimos importados com sucesso.")
+                        -- para o banco de dados:
+                        let banco_integrado = foldl (\b_acc emp -> 
+                                let id_alvo = id_item_emp emp
+                                    mat_alvo = mat_user_emp emp
+                                    data_real_emp = data_emp emp
+                                    
+                                    -- disponibilidade do item para False
+                                    itens_att = map (\i -> if id_item i == id_alvo then i { ta_disponivel = False } else i) (lista_itens b_acc)
+                                    
+                                    --  item vai pra lista do usuario
+                                    users_att = map (\u -> if matricula_user u == mat_alvo then u { meus_emprestimos = meus_emprestimos u ++ [id_alvo] } else u) (lista_usuarios b_acc)
+                                    
+                                    --  Log retroativo com data_emp 
+                                    item_busca = filter (\i -> id_item i == id_alvo) (lista_itens b_acc)
+                                    (nome_item, tipo_str) = if null item_busca 
+                                                            then (show id_alvo, "item") 
+                                                            else (titulo (head item_busca), if tipo (head item_busca) == Livro then "livro" else if tipo (head item_busca) == Filme then "filme" else "jogo")
+                                    
+                                    desc = "Empréstimo: " ++ tipo_str ++ " \"" ++ nome_item ++ "\" para matrícula \"" ++ show mat_alvo ++ "\""
+                                    log_op = LogOperacao data_real_emp desc (show mat_alvo) Sucesso ""
+                                    
+                                in b_acc { 
+                                    lista_emprestimos = lista_emprestimos b_acc ++ [emp],
+                                    lista_itens = itens_att,
+                                    lista_usuarios = users_att,
+                                    historico_operacoes = historico_operacoes b_acc ++ [log_op]
+                                }
+                              ) banco emprestimos_lidos
+                        
+                        putStrLn ("Importacao concluida: " ++ show (length emprestimos_lidos) ++ " emprestimos importados e integrados com sucesso.")
                         if erros_formato > 0 then putStrLn ("Aviso: " ++ show erros_formato ++ " linhas com erro de formato foram ignoradas.") else return ()
                         
-                        submenu_exportacao (banco { lista_emprestimos = lista_emprestimos banco ++ emprestimos_lidos })
+                        submenu_exportacao banco_integrado
                         
                     _ -> do
                         putStrLn "Opcao invalida!"
