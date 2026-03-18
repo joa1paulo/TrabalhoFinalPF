@@ -1,5 +1,6 @@
 module ImportacaoExportacao where
 
+import Cadastros (validar_ano, validar_email)
 import Estruturas
 import Text.Read (readMaybe)
 
@@ -71,13 +72,17 @@ empParaCSV emprestimo = meuIntercalate ";" [
 remover_aspas :: String -> String
 remover_aspas linha = filter (\c -> c /= '\"') linha
 
--- Usando a funcao 'meuSplitOn' do colega para fatiar o texto!
+-- Usando a funcao 'meuSplitOn'
+
 montar_item_da_linha :: String -> Maybe Item
 montar_item_da_linha linha =
     let partes = meuSplitOn ';' (remover_aspas linha)
     in if length partes == 5
        then case (readMaybe (partes !! 3) :: Maybe Int, readMaybe (partes !! 4) :: Maybe Int) of
-                (Just ano_int, Just id_int) -> Just (Item id_int (partes !! 1) (partes !! 2) ano_int (tipo_de_str (partes !! 0)) True [])
+                (Just ano_int, Just id_int) -> 
+                    if validar_ano ano_int -- IMPEDE ANOS NONSENSE DE ENTRAREM PELO CSV
+                    then Just (Item id_int (partes !! 1) (partes !! 2) ano_int (tipo_de_str (partes !! 0)) True [])
+                    else Nothing
                 _ -> Nothing
        else Nothing
 
@@ -86,7 +91,11 @@ montar_usuario_da_linha linha =
     let partes = meuSplitOn ';' (remover_aspas linha)
     in if length partes == 3
        then case readMaybe (partes !! 2) :: Maybe Int of
-                Just mat_int -> Just (Usuario mat_int (partes !! 0) (partes !! 1) [])
+                Just mat_int -> 
+                    let email_csv = partes !! 1
+                    in if validar_email email_csv -- IMPEDE EMAILS INVALIDOS DO CSV
+                       then Just (Usuario mat_int (partes !! 0) email_csv [])
+                       else Nothing
                 _ -> Nothing
        else Nothing
 

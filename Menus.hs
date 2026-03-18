@@ -75,12 +75,21 @@ submenu_itens banco = do
                 submenu_itens banco
             else do
                 let ano_int = read ano_str :: Int
-                let novo_item = Item id_int titulo_str autor_str ano_int tipo_escolhido True []
-                
-                momento <- pegar_tempo_atual 
-                let banco_novo = cadastrar_item momento novo_item banco
-                putStrLn "Sucesso! Item cadastrado."
-                submenu_itens banco_novo
+                if not (validar_ano ano_int) then do
+                    let nome_cat = if tipo_escolhido == Livro then "livros" else if tipo_escolhido == Filme then "filmes" else "jogos"
+                    let msg_erro = "Erro: ano \"" ++ show ano_int ++ "\" inválido para " ++ nome_cat ++ "."
+                    putStrLn msg_erro
+                    
+                    momento <- pegar_tempo_atual
+                    let log_erro = LogOperacao momento ("Tentativa de cadastro de item (ID: " ++ show id_int ++ ")") "Sistema" Erro msg_erro
+                    submenu_itens (banco { historico_operacoes = historico_operacoes banco ++ [log_erro] })
+                else do
+                    let novo_item = Item id_int titulo_str autor_str ano_int tipo_escolhido True []
+                    
+                    momento <- pegar_tempo_atual 
+                    let banco_novo = cadastrar_item momento novo_item banco
+                    putStrLn "Sucesso! Item cadastrado."
+                    submenu_itens banco_novo
             
         "2" -> do
             id_str <- ler_string "Informe o ID do item para remover: "
@@ -129,13 +138,23 @@ submenu_usuarios banco = do
                     else do
                         nome_str <- ler_string "Informe o nome: "
                         email_str <- ler_string "Informe o e-mail: "
-                        let novo_user = Usuario mat_int nome_str email_str []
                         
-                        momento <- pegar_tempo_atual
-                        let banco_novo = cadastrar_usuario momento novo_user banco
-                        
-                        putStrLn "Sucesso! Usuario cadastrado."
-                        submenu_usuarios banco_novo
+                        -- NOVO ESCUDO DE E-MAIL AQUI!
+                        if not (validar_email email_str) then do
+                            let msg_erro = "Erro: e-mail \"" ++ email_str ++ "\" está mal formatado."
+                            putStrLn msg_erro
+                            
+                            momento <- pegar_tempo_atual
+                            let log_erro = LogOperacao momento ("Tentativa de cadastro de usuário (Mat: " ++ show mat_int ++ ")") "Sistema" Erro msg_erro
+                            submenu_usuarios (banco { historico_operacoes = historico_operacoes banco ++ [log_erro] })
+                        else do
+                            let novo_user = Usuario mat_int nome_str email_str []
+                            
+                            momento <- pegar_tempo_atual
+                            let banco_novo = cadastrar_usuario momento novo_user banco
+                            
+                            putStrLn "Sucesso! Usuario cadastrado."
+                            submenu_usuarios banco_novo
                     
         "2" -> do
             mat_str <- ler_string "Informe a matricula para remover: "
@@ -512,13 +531,24 @@ submenu_edicao banco = do
                         "3" -> do
                             novo_val <- ler_string "Informe novo ano: "
                             let ano_int = read novo_val :: Int
-                            confirma <- ler_string "Confirma edicao? (S/N): "
-                            if confirma == "S" || confirma == "s" then do
+                            
+                            if not (validar_ano ano_int) then do
+                                let nome_cat = if tipo item == Livro then "livros" else if tipo item == Filme then "filmes" else "jogos"
+                                let msg_erro = "Erro: ano \"" ++ show ano_int ++ "\" inválido para " ++ nome_cat ++ "."
+                                putStrLn msg_erro
                                 momento <- pegar_tempo_atual
-                                let banco_novo = editar_ano_item momento id_int ano_int banco
-                                putStrLn "Sucesso! Ano alterado."
-                                submenu_edicao banco_novo
-                            else do putStrLn "Edicao cancelada."; submenu_edicao banco
+                                let log_erro = LogOperacao momento ("Tentativa de edição de ano (ID: " ++ show id_int ++ ")") "Sistema" Erro msg_erro
+                                submenu_edicao (banco { historico_operacoes = historico_operacoes banco ++ [log_erro] })
+                            else do
+                                confirma <- ler_string "Confirma edicao? (S/N): "
+                                if confirma == "S" || confirma == "s" then do
+                                    momento <- pegar_tempo_atual
+                                    let banco_novo = editar_ano_item momento id_int ano_int banco
+                                    putStrLn "Sucesso! Ano alterado."
+                                    submenu_edicao banco_novo
+                                else do 
+                                    putStrLn "Edicao cancelada."
+                                    submenu_edicao banco
                             
                         _ -> do putStrLn "Opcao invalida!"; submenu_edicao banco
 
@@ -554,16 +584,25 @@ submenu_edicao banco = do
                             
                         "2" -> do
                             novo_val <- ler_string "Informe novo e-mail: "
-                            confirma <- ler_string "Confirma edicao? (S/N): "
-                            if confirma == "S" || confirma == "s" then do
-                                momento <- pegar_tempo_atual
-                                let banco_novo = editar_email_usuario momento mat_int novo_val banco
-                                putStrLn "Sucesso! E-mail atualizado."
-                                submenu_edicao banco_novo
-                            else do putStrLn "Edicao cancelada."; submenu_edicao banco
                             
+                            if not (validar_email novo_val) then do
+                                let msg_erro = "Erro: e-mail \"" ++ novo_val ++ "\" está mal formatado."
+                                putStrLn msg_erro
+                                momento <- pegar_tempo_atual
+                                let log_erro = LogOperacao momento ("Tentativa de edição de e-mail (Mat: " ++ show mat_int ++ ")") "Sistema" Erro msg_erro
+                                submenu_edicao (banco { historico_operacoes = historico_operacoes banco ++ [log_erro] })
+                            else do
+                                confirma <- ler_string "Confirma edicao? (S/N): "
+                                if confirma == "S" || confirma == "s" then do
+                                    momento <- pegar_tempo_atual
+                                    let banco_novo = editar_email_usuario momento mat_int novo_val banco
+                                    putStrLn "Sucesso! E-mail atualizado."
+                                    submenu_edicao banco_novo
+                                else do 
+                                    putStrLn "Edicao cancelada."
+                                    submenu_edicao banco
+                                    
                         _ -> do putStrLn "Opcao invalida!"; submenu_edicao banco
-
         "3" -> menu_principal banco
         
         _ -> do

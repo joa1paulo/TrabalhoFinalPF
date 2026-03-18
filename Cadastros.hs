@@ -78,3 +78,28 @@ remover_item momento id_remover banco =
         log_op = LogOperacao momento ("Remoção item código: \"" ++ show id_remover ++ "\"") "Sistema" Sucesso ""
         novo_log = historico_operacoes banco ++ [log_op]
     in banco { lista_itens = nova_lista, historico_operacoes = novo_log }
+    
+
+
+-- REGRAS DE VALIDAÇÃO 
+
+
+-- O ano deve estar entre 1900 e o ano atual (2026)
+validar_ano :: Int -> Bool
+validar_ano a = a >= 1900 && a <= 2026
+
+-- Funcao auxiliar recursiva para achar ".com"
+contem_ponto_com :: String -> Bool
+contem_ponto_com [] = False
+contem_ponto_com (t:ts)
+    | take 4 (t:ts) == ".com" = True
+    | otherwise = contem_ponto_com ts
+
+-- O e-mail deve ter texto antes do '@', o próprio '@' e um '.com' depois
+validar_email :: String -> Bool
+validar_email email =
+    let (antes, depois_com_arroba) = break (== '@') email
+    in if null depois_com_arroba
+       then False -- Não tem '@'
+       else let depois = tail depois_com_arroba -- Tira o '@'
+            in (length antes > 0) && contem_ponto_com depois
