@@ -2,25 +2,25 @@ module Cadastros where
 
 import Estruturas
 
--- Auxiliar para printar o tipo em minusculo no log
+--  tipo em minusculo no log
 tipo_str :: TipoMidia -> String
 tipo_str Livro = "livro"
 tipo_str Filme = "filme"
 tipo_str Jogo = "jogo"
 
--------------------------------- Usuarios --------------------------------
+-- === Usuarios 
 
--- Logica da colega: verificacao manual se o usuario existe
+
 usuarioExiste :: Int -> [Usuario] -> Bool
 usuarioExiste _ [] = False
 usuarioExiste mat (x:xs)
     | matricula_user x == mat = True
     | otherwise               = usuarioExiste mat xs
 
--- 1. Cadastra um novo usuario (Adaptado para receber o 'momento' e usar o LogOperacao)
+-- 1. Cadastra um novo usuario 
 cadastrar_usuario :: String -> Usuario -> BancoDeDados -> BancoDeDados
 cadastrar_usuario momento novo_user banco = 
-    -- Embora o Menus.hs ja valide, mantemos a logica dela aqui como protecao extra
+    
     if usuarioExiste (matricula_user novo_user) (lista_usuarios banco)
     then banco
     else let 
@@ -29,14 +29,13 @@ cadastrar_usuario momento novo_user banco =
         novo_log = historico_operacoes banco ++ [log_op]
     in banco { lista_usuarios = nova_lista, historico_operacoes = novo_log }
 
--- Logica da colega: Recursao manual para remover usuario (Excelente para avaliacao!)
 auxRemoverUsuario :: Int -> [Usuario] -> [Usuario]
 auxRemoverUsuario _ [] = []
 auxRemoverUsuario mat (x:xs)
     | matricula_user x == mat = xs
     | otherwise               = x : auxRemoverUsuario mat xs
 
--- 3. Remove um usuario (Usando a auxiliar recursiva da colega)
+-- 3. Remove um usuario 
 remover_usuario :: String -> Int -> BancoDeDados -> BancoDeDados
 remover_usuario momento mat banco =
     let nova_lista = auxRemoverUsuario mat (lista_usuarios banco)
@@ -44,16 +43,16 @@ remover_usuario momento mat banco =
         novo_log = historico_operacoes banco ++ [log_op]
     in banco { lista_usuarios = nova_lista, historico_operacoes = novo_log }
 
----------------------------------- Itens ----------------------------------
+-- === Itens 
 
--- Logica da colega: verificacao manual se o item existe
+
 itemExiste :: Int -> [Item] -> Bool
 itemExiste _ [] = False
 itemExiste idBusca (x:xs)
     | id_item x == idBusca = True
     | otherwise            = itemExiste idBusca xs
 
--- 2. Cadastra um novo item (Adaptado para receber o 'momento')
+-- 2. Cadastra um novo item 
 cadastrar_item :: String -> Item -> BancoDeDados -> BancoDeDados
 cadastrar_item momento novo_item banco = 
     if itemExiste (id_item novo_item) (lista_itens banco)
@@ -64,14 +63,14 @@ cadastrar_item momento novo_item banco =
         novo_log = historico_operacoes banco ++ [log_op]
     in banco { lista_itens = nova_lista, historico_operacoes = novo_log }
 
--- Logica da colega: Recursao manual para remover item
+
 auxRemoverItem :: Int -> [Item] -> [Item]
 auxRemoverItem _ [] = []
 auxRemoverItem idBusca (x:xs)
     | id_item x == idBusca = xs
     | otherwise            = x : auxRemoverItem idBusca xs
 
--- 4. Remove um item (Usando a auxiliar recursiva da colega)
+-- 4. Remove um item 
 remover_item :: String -> Int -> BancoDeDados -> BancoDeDados
 remover_item momento id_remover banco =
     let nova_lista = auxRemoverItem id_remover (lista_itens banco)
@@ -88,20 +87,20 @@ remover_item momento id_remover banco =
 validar_ano :: Int -> Bool
 validar_ano a = a >= 1900 && a <= 2026
 
--- Funcao auxiliar recursiva para achar ".com"
+-- Funcao auxiliar para achar ".com"
 contem_ponto_com :: String -> Bool
 contem_ponto_com [] = False
 contem_ponto_com (t:ts)
     | take 4 (t:ts) == ".com" = True
     | otherwise = contem_ponto_com ts
 
--- O e-mail deve ter texto antes do '@', o próprio '@' e um '.com' depois
+-- O e-mail deve ter texto antes do '@', o '@' e '.com' depois
 validar_email :: String -> Bool
 validar_email email =
     let (antes, depois_com_arroba) = break (== '@') email
     in if null depois_com_arroba
-       then False -- Não tem '@'
-       else let depois = tail depois_com_arroba -- Tira o '@'
+       then False 
+       else let depois = tail depois_com_arroba 
             in (length antes > 0) && contem_ponto_com depois
 
 -- O formato deve ser estritamente [YYYY-MM-DD HH:MM] (18 caracteres)

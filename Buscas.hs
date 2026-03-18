@@ -4,22 +4,22 @@ import Estruturas
 import Relatorios (contem_substring)
 import Data.List (sortOn)
 
--- ==========================================================
+
 -- FUNÇÕES DE FORMATAÇÃO (Para ignorar Maiúsculas/Minúsculas)
--- ==========================================================
+
 
 minuscula :: Char -> Char
 minuscula c
     | fromEnum c >= 65 && fromEnum c <= 90 = toEnum (fromEnum c + 32)
     | otherwise = c
 
--- CORRIGIDO: Variável 'texto' explicitamente declarada (evitando estilo point-free)
+
 para_minusculo :: String -> String
 para_minusculo texto = map minuscula texto
 
--- ==========================================================
+
 -- FUNÇÕES DE BUSCA E FILTRAGEM
--- ==========================================================
+
 
 -- 1. Buscar por titulo
 buscar_titulo :: String -> BancoDeDados -> [Item]
@@ -56,4 +56,4 @@ ordenar_itens criterio ordem itens =
         ("ano", "desc")    -> reverse (sortOn (\item -> ano item) itens)
         ("autor", "asc")   -> sortOn (\item -> autor item) itens
         ("autor", "desc")  -> reverse (sortOn (\item -> autor item) itens)
-        _                  -> itens -- Se digitar errado, devolve a lista normal
+        _                  -> itens -- se digitar errado, lista normal

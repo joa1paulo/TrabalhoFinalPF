@@ -3,9 +3,9 @@ module Relatorios where
 import Estruturas
 import Data.List (sort, group, sortOn)
 
--- ==========================================================
--- ESTATISTICAS UTILIZANDO MAP, FILTER E FOLDL (exigencia do PDF)
--- ==========================================================
+
+-- ESTATISTICAS UTILIZANDO MAP, FILTER E FOLDL 
+
 
 -- 1. Emprestimos ativos por categoria
 ativos_por_categoria :: TipoMidia -> BancoDeDados -> [Item]
@@ -25,13 +25,13 @@ usuarios_mais_ativos banco =
     in reverse (sortOn (\tupla -> snd tupla) contagem)
 
 -- 3. Itens mais emprestados
--- CORRECAO: Removemos o acento da busca (buscamos "mpr" e "para matr") para evitar bugs no Windows
--- CORRECAO 2: Extraimos apenas o Titulo do meio das aspas para agrupar corretamente no ranking!
+-- tive que mudar busca para "mpr" e "para matr" para evitar os bugs
+-- Extrai o titulo do meio das aspas para agrupar no ranking
 itens_mais_emprestados :: BancoDeDados -> [(String, Int)]
 itens_mais_emprestados banco =
     let logsEmp    = filter (\lg -> contem_substring "mpr" (descricao_op lg) && contem_substring "para matr" (descricao_op lg)) (historico_operacoes banco)
         
-        -- Funcao auxiliar que extrai o texto entre as primeiras aspas (o Titulo do item!)
+        -- Funcao que extrai o texto do titulo das primeiras aspas 
         pegar_titulo desc =
             let (_, resto1) = break (== '\"') desc
                 (tit, _)    = break (== '\"') (if null resto1 then "" else tail resto1)
@@ -42,7 +42,7 @@ itens_mais_emprestados banco =
     in reverse (sortOn (\tupla -> snd tupla) contagem)
 
 -- 4. Frequencia de emprestimos por periodo
--- CORRECAO: Buscando sem acentos novamente
+--  Busca sem acentos
 frequencia_periodo :: String -> BancoDeDados -> Int
 frequencia_periodo periodo banco =
     foldl (\acc lg -> contar_emprestimo_no_periodo lg periodo acc) 0 (historico_operacoes banco)
@@ -62,9 +62,9 @@ relatorio_operacoes :: String -> BancoDeDados -> [LogOperacao]
 relatorio_operacoes termo banco =
     filter (\lg -> contem_substring termo (usuario_envolvido lg) || contem_substring termo (descricao_op lg)) (historico_operacoes banco)
 
--- ==========================================================
+
 -- FUNCOES AUXILIARES RECURSIVAS
--- ==========================================================
+
 
 eh_prefixo :: String -> String -> Bool
 eh_prefixo [] _          = True

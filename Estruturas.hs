@@ -1,10 +1,10 @@
 module Estruturas where
 
--- Equivalente a um enum para as categorias pedidas no PDF
+-- categorias
 data TipoMidia = Livro | Filme | Jogo 
     deriving (Show, Read, Eq)
 
--- A nossa "struct" de Item
+--  Item
 data Item = Item {
     id_item :: Int,
     titulo :: String,
@@ -15,7 +15,7 @@ data Item = Item {
     fila_espera :: [Int] 
 } deriving (Show, Read, Eq)
 
--- A nossa "struct" de Usuário
+-- struct Usuário
 data Usuario = Usuario {
     matricula_user :: Int,
     nome_user :: String,
@@ -23,7 +23,7 @@ data Usuario = Usuario {
     meus_emprestimos :: [Int] 
 } deriving (Show, Read, Eq)
 
--- Registro pra sabermos quem pegou o que e quando
+-- Registro de quem pegou o que e quando
 data Emprestimo = Emprestimo {
     id_item_emp :: Int,
     mat_user_emp :: Int,
@@ -31,12 +31,12 @@ data Emprestimo = Emprestimo {
     data_devolucao :: String 
 } deriving (Show, Read, Eq)
 
----------------------------------------------------------
--- NOVAS ESTRUTURAS DE AUDITORIA E HISTÓRICO
----------------------------------------------------------
+
+--  AUDITORIA E HISTÓRICO
+
 data StatusLog = Sucesso | Erro deriving (Show, Read, Eq)
 
--- Struct para a Opção 1: Log de Operações (Cadastros, empréstimos, erros)
+-- Struct Log de Operações (Cadastros, empréstimos, erros)
 data LogOperacao = LogOperacao {
     data_hora_op :: String,
     descricao_op :: String,
@@ -45,7 +45,7 @@ data LogOperacao = LogOperacao {
     detalhe_erro :: String -- Fica vazio se for Sucesso
 } deriving (Show, Read, Eq)
 
--- Struct para a Opção 2: Histórico de Alterações (Edição de dados)
+-- Struct Histórico de Alterações (Edição de dados)
 data LogEdicao = LogEdicao {
     data_hora_ed :: String,
     entidade_alterada :: String,
@@ -54,15 +54,15 @@ data LogEdicao = LogEdicao {
     alterado_por :: String
 } deriving (Show, Read, Eq)
 
--- O nosso "banco de dados" em memória atualizado
+-- O "banco de dados"
 data BancoDeDados = BancoDeDados {
     lista_itens :: [Item],
     lista_usuarios :: [Usuario],
     lista_emprestimos :: [Emprestimo],
-    historico_operacoes :: [LogOperacao], -- Lista separada para operações
-    historico_edicoes :: [LogEdicao]      -- Lista separada para edições
+    historico_operacoes :: [LogOperacao], -- Lista para operações
+    historico_edicoes :: [LogEdicao]      -- Lista para edições
 } deriving (Show, Read, Eq)
 
--- Estado inicial quando não tem nada cadastrado ainda
+-- Começa assim
 banco_vazio :: BancoDeDados
 banco_vazio = BancoDeDados [] [] [] [] []

@@ -14,9 +14,9 @@ import System.Directory (doesFileExist)
 import System.IO (stdout)
 import Text.Read (readMaybe)
 
--- ==========================================================
+
 -- FUNCOES AUXILIARES DE INTERFACE 
--- ==========================================================
+
 
 exibir_opcoes :: String -> [String] -> IO ()
 exibir_opcoes titulo opcoes = do
@@ -35,7 +35,7 @@ ler_string texto = do
     putStr texto
     getLine
 
--- CONTRIBUIÇÃO GENIAL DO COLEGA: Protege contra crash se o usuario digitar letras em vez de numeros!
+-- se digitar letras em vez de numeros
 ler_int :: String -> IO Int
 ler_int texto = do
     entrada <- ler_string texto
@@ -45,7 +45,7 @@ ler_int texto = do
             putStrLn "Erro: digite apenas numeros inteiros."
             ler_int texto
 
--- Loop de validacao do colega usando nossa regra de negocio do Cadastros.hs
+-- regra do Cadastros.hs
 ler_ano_valido :: IO Int
 ler_ano_valido = do
     a <- ler_int "Informe o ano de publicacao (1900-2026): "
@@ -55,7 +55,7 @@ ler_ano_valido = do
             putStrLn ("Erro: ano \"" ++ show a ++ "\" invalido. Informe um valor entre 1900 e 2026.")
             ler_ano_valido
 
--- Loop de validacao do colega usando nossa regra de negocio do Cadastros.hs
+-- regra do Cadastros.hs
 ler_email_valido :: IO String
 ler_email_valido = do
     email <- ler_string "Informe o e-mail: "
@@ -65,7 +65,7 @@ ler_email_valido = do
             putStrLn ("Erro: e-mail \"" ++ email ++ "\" esta mal formatado. Use o formato usuario@dominio.com")
             ler_email_valido
 
--- Auxiliar: le a data com formato exato
+-- Auxiliar: le a data com formatada
 ler_data_valida :: String -> IO String
 ler_data_valida prompt = do
     d <- ler_string prompt
@@ -75,9 +75,9 @@ ler_data_valida prompt = do
             putStrLn "Erro: Data mal formatada. Use o padrao exato [YYYY-MM-DD HH:MM] (incluindo colchetes)."
             ler_data_valida prompt
 
--- ==========================================================
+
 -- SUBMENUS
--- ==========================================================
+
 
 -- Submenu 1: Itens
 submenu_itens :: BancoDeDados -> IO ()
@@ -92,7 +92,7 @@ submenu_itens banco = do
     
     case opcao of
         "1" -> do
-            -- Usando o ler_int do colega!
+            
             id_int <- ler_int "Informe o codigo unico do item (numeros): "
             
             if any (\item -> id_item item == id_int) (lista_itens banco) then do
@@ -102,7 +102,7 @@ submenu_itens banco = do
                 titulo_str <- ler_string "Informe o titulo: "
                 autor_str <- ler_string "Informe o autor/diretor/criador: "
                 
-                -- Usando o loop do colega
+                -- loop
                 ano_int <- ler_ano_valido
                 
                 exibir_opcoes "Qual o tipo de midia?" ["1 - Livro | 2 - Filme | 3 - Jogo"]
@@ -212,7 +212,7 @@ submenu_emprestimos banco = do
                 let log_erro = LogOperacao momento ("Tentativa de empréstimo (ID: " ++ show id_int ++ ")") (show mat_int) Erro "Usuário inexistente"
                 submenu_emprestimos (banco { historico_operacoes = historico_operacoes banco ++ [log_erro] })
             else do
-                -- NOSSO ESCUDO DE ATRASOS (Com data de devolucao real)
+                --  (Com data de devolucao real)
                 momento_atual <- pegar_tempo_atual
                 let atrasos = contar_atrasos mat_int momento_atual banco
                 
@@ -242,7 +242,7 @@ submenu_emprestimos banco = do
                                 putStrLn "Operacao cancelada."
                                 submenu_emprestimos banco
                         else do
-                            -- AQUI PEDE O PRAZO QUE O COLEGA ESQUECEU!
+                            
                             data_dev <- ler_data_valida "Informe o prazo de devolucao (ex: [2026-03-24 10:00]): "
                             momento <- pegar_tempo_atual
                             let banco_novo = fazer_emprestimo momento data_dev id_int mat_int banco
@@ -743,7 +743,7 @@ submenu_auditoria banco = do
             putStrLn "Opcao invalida!"
             submenu_auditoria banco
 
--- O nosso while(1) principal
+
 menu_principal :: BancoDeDados -> IO ()
 menu_principal banco = do
     exibir_opcoes "Sistema de Midias - Menu Principal" [
@@ -776,7 +776,7 @@ menu_principal banco = do
             putStrLn "\nOpcao invalida. Tente novamente."
             menu_principal banco
 
--- Funcao auxiliar simples pra printar a lista bonitinha no terminal
+-- printar a lista formatada no terminal
 imprimir_resultados :: [Item] -> IO ()
 imprimir_resultados resultados = do
     putStrLn "\n--- Resultados da Busca ---"

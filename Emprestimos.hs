@@ -2,7 +2,7 @@ module Emprestimos where
 
 import Estruturas
 
--- Auxiliar para pegar o nome do tipo em minusculo
+--  tipo em minusculo
 tipo_str :: TipoMidia -> String
 tipo_str Livro = "livro"
 tipo_str Filme = "filme"
@@ -36,7 +36,7 @@ fazer_emprestimo momento data_dev id_item_alvo mat_user banco =
           else let
               titulo_item = titulo item_alvo
               tipo_item = tipo_str (tipo item_alvo)
-              -- ATUALIZADO com data_dev
+              -- com data de devolucao
               novo_emp = Emprestimo id_item_alvo mat_user momento data_dev
               nova_lista_emp = lista_emprestimos banco ++ [novo_emp]
               nova_lista_itens = map (\item -> if id_item item == id_item_alvo then item { ta_disponivel = False } else item) (lista_itens banco)
@@ -55,7 +55,7 @@ fazer_devolucao momento id_item_alvo mat_user banco =
     
     in if null item_busca || null emp_busca
        then let
-           -- LOGA O ERRO DE DEVOLUCAO FALSA
+           -- medida para o erro de devolução falsa
            motivo = if null item_busca then "Item não encontrado" else "Empréstimo não existe para este usuário"
            log_erro = LogOperacao momento ("Tentativa de devolução (ID: " ++ show id_item_alvo ++ ")") (show mat_user) Erro motivo
            novo_log = historico_operacoes banco ++ [log_erro]
@@ -90,7 +90,7 @@ renovar_emprestimo momento id_item_alvo mat_user nova_data banco =
        in banco { historico_operacoes = novo_log }
        else let
            item_alvo = head item_busca
-           -- CORRIGIDO: Agora ele atualiza a data_devolucao em vez da data_emp!
+           
            nova_lista_emp = map (\emprestimo -> if id_item_emp emprestimo == id_item_alvo && mat_user_emp emprestimo == mat_user
                                        then emprestimo { data_devolucao = nova_data } 
                                        else emprestimo) (lista_emprestimos banco)
@@ -110,15 +110,15 @@ devolucao_lote :: String -> [Int] -> Int -> BancoDeDados -> BancoDeDados
 devolucao_lote momento ids mat_user banco =
     foldl (\banco_acumulado id_alvo -> fazer_devolucao momento id_alvo mat_user banco_acumulado) banco ids
 
--- Adiciona o usuario na fila de espera do item
+-- Adiciona na fila de espera do item
 adicionar_fila_espera :: String -> Int -> Int -> BancoDeDados -> BancoDeDados
 adicionar_fila_espera momento id_item_alvo mat_user banco =
     let item_busca = filter (\item -> id_item item == id_item_alvo) (lista_itens banco)
-        -- Validar se o usuario fantasma ta tentando entrar na fila
+        -- tinha usuario fantasma na fila, agora nao tem mais:
         user_busca = filter (\usuario -> matricula_user usuario == mat_user) (lista_usuarios banco)
     in if null item_busca || null user_busca
        then let
-           -- CORRIGIDO: Adicionado o log de erro para a fila de espera também!
+           -- erro para lista de espera no log
            motivo = if null item_busca then "Item não encontrado" else "Usuário não encontrado"
            log_erro = LogOperacao momento ("Tentativa de fila de espera (ID: " ++ show id_item_alvo ++ ")") (show mat_user) Erro motivo
            novo_log = historico_operacoes banco ++ [log_erro]
@@ -126,7 +126,7 @@ adicionar_fila_espera momento id_item_alvo mat_user banco =
        
        else let
            item_alvo = head item_busca
-       -- Protecao: usa a funcao de voces pra nao botar o cara duas vezes na fila
+       -- pra nao botar o cara duas vezes na fila
        in if ja_ta_na_fila mat_user (fila_espera item_alvo)
           then banco
           else let

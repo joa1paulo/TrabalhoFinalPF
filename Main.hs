@@ -19,7 +19,7 @@ main = do
     hSetBuffering stdout NoBuffering
     putStrLn "Iniciando o Sistema de Gerenciamento de Midias..."
     
-    -- Le o arquivo biblioteca.txt ou cria um banco vazio se nao existir
+    -- Le o arquivo biblioteca.txt ou cria um 
     banco_inicial <- carregar_banco
     
     -- Passa os dados pro loop do menu

@@ -3,9 +3,9 @@ module Edicao where
 import Estruturas
 import Data.List (sortOn)
 
--- ==========================================================
+
 -- FUNÇÕES DE EDIÇÃO DE ITENS
--- ==========================================================
+
 
 editar_titulo_item :: String -> Int -> String -> BancoDeDados -> BancoDeDados
 editar_titulo_item momento id_alvo novo_titulo banco =
@@ -15,7 +15,7 @@ editar_titulo_item momento id_alvo novo_titulo banco =
         log_ed = LogEdicao momento ("Item ID " ++ show id_alvo) ("Titulo: " ++ titulo item_antigo) ("Titulo: " ++ novo_titulo) "Sistema"
         novo_hist_ed = historico_edicoes banco ++ [log_ed]
         
-        -- Agora salva no Log Geral também!
+        -- salva no Log Geral
         log_op = LogOperacao momento ("Edição item: código \"" ++ show id_alvo ++ "\"") "Sistema" Sucesso ""
         novo_hist_op = historico_operacoes banco ++ [log_op]
         
@@ -48,9 +48,9 @@ editar_ano_item momento id_alvo novo_ano banco =
     in banco { lista_itens = itens_atualizados, historico_edicoes = novo_hist_ed, historico_operacoes = novo_hist_op }
 
 
--- ==========================================================
+
 -- FUNÇÕES DE EDIÇÃO DE USUÁRIOS
--- ==========================================================
+
 
 editar_nome_usuario :: String -> Int -> String -> BancoDeDados -> BancoDeDados
 editar_nome_usuario momento mat_alvo novo_nome banco =
@@ -60,7 +60,7 @@ editar_nome_usuario momento mat_alvo novo_nome banco =
         log_ed = LogEdicao momento ("Usuario mat " ++ show mat_alvo) ("Nome: " ++ nome_user user_antigo) ("Nome: " ++ novo_nome) "Sistema"
         novo_hist_ed = historico_edicoes banco ++ [log_ed]
         
-        -- Agora salva no Log Geral também!
+        -- Agora salva no Log Geral 
         log_op = LogOperacao momento ("Edição usuário: matrícula \"" ++ show mat_alvo ++ "\"") "Sistema" Sucesso ""
         novo_hist_op = historico_operacoes banco ++ [log_op]
         
@@ -79,9 +79,9 @@ editar_email_usuario momento mat_alvo novo_email banco =
         
     in banco { lista_usuarios = users_atualizados, historico_edicoes = novo_hist_ed, historico_operacoes = novo_hist_op }
 
--- ==========================================================
--- BUSCA BINARIA RECURSIVA DIRETA (Exigencia do PDF)
--- ==========================================================
+
+-- BUSCA BINARIA RECURSIVA DIRETA
+
 
 busca_binaria_item :: Int -> [Item] -> Int -> Int -> [Item]
 busca_binaria_item alvo itens inicio fim
@@ -105,12 +105,12 @@ busca_binaria_user alvo users inicio fim
 
 buscar_item_para_edicao :: Int -> BancoDeDados -> [Item]
 buscar_item_para_edicao id_alvo banco =
-    -- CORRIGIDO: Lambda explicita em vez de point-free (sortOn id_item)
+    
     let itens_ordenados = sortOn (\item -> id_item item) (lista_itens banco)
     in busca_binaria_item id_alvo itens_ordenados 0 (length itens_ordenados - 1)
 
 buscar_user_para_edicao :: Int -> BancoDeDados -> [Usuario]
 buscar_user_para_edicao mat_alvo banco =
-    --  (sortOn matricula_user)
+    
     let users_ordenados = sortOn (\usuario -> matricula_user usuario) (lista_usuarios banco)
     in busca_binaria_user mat_alvo users_ordenados 0 (length users_ordenados - 1)
