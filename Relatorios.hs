@@ -42,7 +42,7 @@ itens_mais_emprestados banco =
     in reverse (sortOn (\tupla -> snd tupla) contagem)
 
 -- 4. Frequencia de emprestimos por periodo
---  Busca sem acentos
+--  Busca (sem acentos)
 frequencia_periodo :: String -> BancoDeDados -> Int
 frequencia_periodo periodo banco =
     foldl (\acc lg -> contar_emprestimo_no_periodo lg periodo acc) 0 (historico_operacoes banco)
